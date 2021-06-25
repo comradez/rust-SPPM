@@ -6,6 +6,7 @@ pub mod camera {
 
     //  use crate::ray;
     use crate::ray::ray::Ray;
+    use crate::utils::utils::parse_vector;
 
     pub struct PerspectiveCamera {
         center: Vector3::<f64>,
@@ -92,13 +93,6 @@ pub mod camera {
         }
     }
 
-    pub fn parse_vector(mut raw: JsonValue) -> Vector3::<f64> {
-        Vector3::<f64>::from([
-            raw.array_remove(0).as_f64().unwrap(),
-            raw.array_remove(1).as_f64().unwrap(),
-            raw.array_remove(2).as_f64().unwrap()
-        ])
-    }
     pub fn build_camera(mut camera_attr: JsonValue) -> Box<dyn Camera> {
         let cam_type = camera_attr.remove("Type").take_string().unwrap();
         let center = parse_vector(camera_attr.remove("Center"));

@@ -4,7 +4,7 @@ pub mod lights {
     use vecmat::prelude::NormL1;
     use vecmat::vector::Vector3;
     use crate::ray::ray::Ray;
-    use crate::utils::utils::gen_vert;
+    use crate::utils::utils::{gen_vert, parse_vector};
     use rand::{thread_rng, Rng};
 
     pub trait Light {
@@ -108,6 +108,26 @@ pub mod lights {
                 self.norm,
                 Some(self.flux * self.scale)
             )
+        }
+    }
+
+    pub fn build_light(mut light_attr: json::JsonValue) -> Box<dyn Light> {
+        let light_type = light_attr.remove("Type").take_string().unwrap();
+        let scale = light_attr.remove("Scale").as_f64().unwrap();
+        let pos = parse_vector(light_attr.remove("Position"));
+        let flux = parse_vector(light_attr.remove("Flux"));
+        if light_type == "SphereLight" {
+            Box::new(SphereLight::new(Some(scale), pos, flux))
+        } else if light_type == "ConeLight" {
+            let normal = parse_vector(light_attr.remove("Normal"));
+            let angle = light_attr.remove("Angle").as_f64().unwrap();
+            Box::new(ConeLight::new(Some(scale), pos, normal, flux, angle))
+        } else if light_type == "DirectionCircleLight" {
+            let normal = parse_vector(light_attr.remove("Normal"));
+            let radius = light_attr.remove("Radius").as_f64().unwrap();
+            Box::new(DirectionCircleLight::new(Some(scale), pos, normal, flux, radius))
+        } else {
+            panic!("Wrong light type!");
         }
     }
 }
