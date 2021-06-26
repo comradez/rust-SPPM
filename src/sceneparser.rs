@@ -1,5 +1,3 @@
-use json;
-use crate::camera::camera::build_camera;
 mod sceneparser {
     use crate::camera::camera::{build_camera, Camera};
     use crate::lights::lights::{build_light, Light};
@@ -13,7 +11,7 @@ mod sceneparser {
             .expect("File not exist!");
         let mut json_parsed = json::parse(&json_raw)
             .expect("Json invalid!");
-        let camera = json_parsed.remove("Camera");
+        let mut camera = json_parsed.remove("Camera");
         let mut lights = json_parsed.remove("Lights");
         let materials = json_parsed.remove("Materials");
         let group = json_parsed.remove("Group");
@@ -21,14 +19,14 @@ mod sceneparser {
         assert!(lights.is_array());
         assert!(materials.is_object());
         assert!(group.is_object());
-        let camera = build_camera(camera);
-        let mut light_vec: Vec<Box<dyn Light>> = vec![];
-        for i in 0.. lights.members().len() {
-            light_vec.push(build_light(lights[i].take()));
-        }
+        let camera = build_camera(&mut camera);
+        let lights: Vec<Box<dyn Light>> = lights
+            .members_mut()
+            .map(|x| build_light(x))
+            .collect();
         SceneParser {
             camera,
-            lights: light_vec
+            lights
         }
     }
 }

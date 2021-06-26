@@ -111,7 +111,7 @@ pub mod lights {
         }
     }
 
-    pub fn build_light(mut light_attr: json::JsonValue) -> Box<dyn Light> {
+    pub fn build_light(light_attr: &mut json::JsonValue) -> Box<dyn Light> {
         let light_type = light_attr.remove("Type").take_string().unwrap();
         let scale = light_attr.remove("Scale").as_f64().unwrap();
         let pos = parse_vector(light_attr.remove("Position"));

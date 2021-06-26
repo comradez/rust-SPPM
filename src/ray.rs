@@ -24,6 +24,14 @@ pub mod ray {
         pub fn get_direction(&self) -> &Vector3::<f64> {
             &self.direction
         }
+        pub fn get_flux(&self) -> &Vector3::<f64> {
+            &self.color
+        }
+        pub fn set(&mut self, origin: Vector3::<f64>, direction: Vector3::<f64>, color: Vector3::<f64>) {
+            self.origin = origin;
+            self.direction = direction;
+            self.color = color;
+        }
         pub fn point_at_param(&self, t: f64) -> Vector3::<f64> {
             self.origin + self.direction * t
         }

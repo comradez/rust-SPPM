@@ -4,6 +4,7 @@ mod camera;
 mod ray;
 mod lights;
 mod utils;
+mod materials;
 fn main() {
     let mut args = env::args().skip(1);
     let scene_file = args.next().expect("No scene file specified.");

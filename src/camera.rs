@@ -2,7 +2,7 @@ pub mod camera {
     use core::f64;
 
     use json::JsonValue;
-    use vecmat::{Matrix, Vector, traits::{Dot}, vector::Vector3};
+    use vecmat::{Matrix, Vector, traits::Dot, vector::Vector3};
 
     //  use crate::ray;
     use crate::ray::ray::Ray;
@@ -13,7 +13,6 @@ pub mod camera {
         direction: Vector3::<f64>,
         horizental: Vector3::<f64>,
         up: Vector3::<f64>,
-        angle: f64,
         width: u32,
         height: u32,
         dist: f64,
@@ -25,9 +24,9 @@ pub mod camera {
             let horizental: Vector3::<f64> = direction.cross(up);
             horizental.normalize();
             let up: Vector3::<f64> = horizental.cross(direction);
+            let angle = angle / std::f64::consts::PI * 180.0;
             Self { 
                 center, direction, horizental, up, 
-                angle: angle / std::f64::consts::PI * 180.0,
                 width, height,
                 dist: height as f64 / (2.0 * f64::tan(angle / 2.0)),
             }
@@ -39,7 +38,6 @@ pub mod camera {
         direction: Vector3::<f64>,
         horizental: Vector3::<f64>,
         up: Vector3::<f64>,
-        angle: f64,
         width: u32,
         height: u32,
         focus: Vector3::<f64>,
@@ -54,9 +52,9 @@ pub mod camera {
             let horizental: Vector3::<f64> = direction.cross(up);
             horizental.normalize();
             let up: Vector3::<f64> = horizental.cross(direction);
+            let angle = angle / std::f64::consts::PI * 180.0;
             Self {
                 center, direction, horizental, up, 
-                angle: angle / std::f64::consts::PI * 180.0,
                 width, height,
                 focus, aperture,
                 dist: height as f64 / (2.0 * f64::tan(angle / 2.0)),
@@ -93,7 +91,7 @@ pub mod camera {
         }
     }
 
-    pub fn build_camera(mut camera_attr: JsonValue) -> Box<dyn Camera> {
+    pub fn build_camera(camera_attr: &mut JsonValue) -> Box<dyn Camera> {
         let cam_type = camera_attr.remove("Type").take_string().unwrap();
         let center = parse_vector(camera_attr.remove("Center"));
         let direction = parse_vector(camera_attr.remove("Direction"));
