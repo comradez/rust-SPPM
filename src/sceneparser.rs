@@ -1,10 +1,12 @@
 mod sceneparser {
     use crate::camera::camera::{build_camera, Camera};
     use crate::lights::lights::{build_light, Light};
+    use crate::materials::materials::{build_material, Material};
 
     struct SceneParser {
         camera: Box<dyn Camera>,
-        lights: Vec<Box<dyn Light>>
+        lights: Vec<Box<dyn Light>>,
+        materials: Vec<Box<dyn Material>>
     }
     fn build_sceneparser(scene_name: String) -> SceneParser {
         let json_raw = std::fs::read_to_string(scene_name)
@@ -13,7 +15,7 @@ mod sceneparser {
             .expect("Json invalid!");
         let mut camera = json_parsed.remove("Camera");
         let mut lights = json_parsed.remove("Lights");
-        let materials = json_parsed.remove("Materials");
+        let mut materials = json_parsed.remove("Materials");
         let group = json_parsed.remove("Group");
         assert!(camera.is_object());
         assert!(lights.is_array());
@@ -24,9 +26,14 @@ mod sceneparser {
             .members_mut()
             .map(|x| build_light(x))
             .collect();
+        let materials: Vec<Box<dyn Material>> = materials
+            .members_mut()
+            .map(|x| build_material(x))
+            .collect();
         SceneParser {
             camera,
-            lights
+            lights,
+            materials
         }
     }
 }
