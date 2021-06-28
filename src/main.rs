@@ -5,9 +5,13 @@ mod ray;
 mod lights;
 mod utils;
 mod materials;
+mod object3d;
+mod hit;
+use crate::sceneparser::build_sceneparser;
 fn main() {
     let mut args = env::args().skip(1);
     let scene_file = args.next().expect("No scene file specified.");
     let output_file = args.next().expect("No output file specified.");
     println!("{}\n{}", scene_file, output_file);
+    let parser = build_sceneparser(scene_file);
 }
