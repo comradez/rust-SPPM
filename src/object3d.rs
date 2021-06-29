@@ -1,17 +1,19 @@
 use core::f64;
+use std::marker::PhantomData;
 use std::usize;
 
+use json::JsonValue;
 use vecmat::matrix::{Matrix3x3, Matrix4x4};
 use vecmat::prelude::NormL2;
 use vecmat::vector::{Vector3, Vector4};
 use vecmat::traits::Dot;
-
-use crate::{hit::Hit, materials::Material, ray::Ray};
+use crate::{hit::Hit, materials::Material, ray::Ray, utils::parse_vector};
+use crate::matrix::{gen_rotate, gen_translation};
 pub trait Object3d {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit>;
 }
 pub struct Group {
-    group: Vec<Box<dyn Object3d>>
+    group: Vec<Box<dyn Object3d>>,
 }
 
 impl Group {
@@ -167,11 +169,12 @@ impl Object3d for Triangle {
 pub struct Transform {
     object: Box<dyn Object3d>, //变形前的对象
     transform: Matrix4x4<f64>,
+    phantom: PhantomData<dyn Material>
 }
 
 impl Transform {
     pub fn new(object: Box<dyn Object3d>, transform: Matrix4x4<f64>) -> Self {
-        Self { object, transform: transform.inv() }
+        Self { object, transform: transform.inv(), phantom: PhantomData::default() }
     }
 }
 
@@ -201,5 +204,103 @@ impl Object3d for Transform {
         let tr_direction = transform_direction(&self.transform, ray.get_direction());
         let ray = Ray::new(tr_source, tr_direction, Some(*ray.get_flux()));
         self.object.intersect(&ray, tmin)
+    }
+}
+
+pub fn build_group(group_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Group> {
+    let mut group = Group::new();
+    for object in group_attr.members() {
+        group.add_object(build_object3d(object, materials));
+    }
+    Box::new(group)
+}
+
+pub fn build_plane(plane_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Plane> {
+    let material_index = plane_attr["MaterialIndex"].as_usize().unwrap();
+    let normal = parse_vector(&plane_attr["Normal"]);
+    let d = plane_attr["Offset"].as_f64().unwrap();
+    Box::new(Plane::new(materials[material_index].clone_box(), normal, d))
+}
+
+pub fn build_triangle(triangle_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Triangle> {
+    let material_index = triangle_attr["MaterialIndex"].as_usize().unwrap();
+    let vertices = &triangle_attr["Vertices"];
+    let vertices = [
+        parse_vector(&vertices[0]),
+        parse_vector(&vertices[1]),
+        parse_vector(&vertices[2])
+    ];
+    let normals: Option<[Vector3<f64>; 3]> = 
+        if let JsonValue::Array(point_normals) = &triangle_attr["Normals"] {
+            Some([
+                parse_vector(&point_normals[0]),
+                parse_vector(&point_normals[1]),
+                parse_vector(&point_normals[2])
+            ])
+        } else {
+            None
+        };
+    Box::new(Triangle::new(materials[material_index].clone_box(), vertices, normals))
+}
+
+pub fn build_sphere(sphere_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Sphere> {
+    let material_index = sphere_attr["MaterialIndex"].as_usize().unwrap();
+    let center = parse_vector(&sphere_attr["Center"]);
+    let radius = sphere_attr["Radius"].as_f64().unwrap();
+    Box::new(Sphere::new(materials[material_index].clone_box(), center, radius))
+}
+
+pub fn build_transform(transform_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Transform> {
+    let mut matrix: Matrix4x4<f64> = Matrix4x4::diagonal(Vector4::<f64>::from([1., 1., 1., 1.]));
+    let object: Box<dyn Object3d> = build_object3d(transform_attr, materials);
+    for process in transform_attr.members() {
+        let process_type = process["Type"].as_str().unwrap();
+        match process_type {
+            "Scale" => {
+                let scales = &process["Scales"];
+                matrix = matrix.dot(Matrix4x4::diagonal(Vector4::<f64>::from([
+                    scales[0].as_f64().unwrap(),
+                    scales[1].as_f64().unwrap(),
+                    scales[2].as_f64().unwrap(),
+                    1.
+                ])));
+            },
+            "UniformScale" => {
+                let scale = process["Scale"].as_f64().unwrap();
+                matrix = matrix.dot(Matrix4x4::diagonal(Vector4::<f64>::from([
+                    scale, scale, scale, 1.
+                ])));
+            },
+            "Translate" => {
+                let translation = gen_translation(&parse_vector(&process["Translation"]));
+                matrix = matrix.dot(translation);
+            },
+            "XRotate" => {
+                let degree = process["Degree"].as_f64().unwrap();
+                matrix = matrix.dot(gen_rotate(degree, 0));
+            },
+            "YRotate" => {
+                let degree = process["Degree"].as_f64().unwrap();
+                matrix = matrix.dot(gen_rotate(degree, 1));
+            },
+            "ZRotate" => {
+                let degree = process["Degree"].as_f64().unwrap();
+                matrix = matrix.dot(gen_rotate(degree, 2));
+            },
+            _ => panic!("Wrong process type.")
+        }
+    }
+    Box::new(Transform::new(object, matrix))
+}
+
+pub fn build_object3d(object_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<dyn Object3d> {
+    let object_type = object_attr["Type"].as_str().unwrap();
+    match object_type {
+        "Group" => build_group(object_attr, materials),
+        "Plane" => build_plane(object_attr, materials),
+        "Triangle" => build_triangle(object_attr, materials),
+        "Sphere" => build_sphere(object_attr, materials),
+        "Transform" => build_transform(object_attr, materials),
+        _ => panic!("Wrong object type")
     }
 }

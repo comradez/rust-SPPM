@@ -1,22 +1,36 @@
 use core::f64;
-
+use std::any::Any;
 use json::JsonValue;
 use vecmat::{vector::Vector3, traits::Dot};
 use crate::ray::Ray;
 use crate::utils::{gen_vert, parse_vector};
 use rand::{thread_rng, Rng};
-pub trait Material {
+
+pub trait Material: Any {
     fn bsdf(&self, ray: &mut Ray, norm: &Vector3::<f64>, pos: &Vector3::<f64>, russian_roulette: bool) -> bool;
+    fn get_type(&self) -> &MaterialType;
+    fn get_color(&self) -> &Vector3<f64>;
+    fn clone_box(&self) -> Box<dyn Material>;
 }
 
+#[derive(Clone, Copy)]
+pub enum MaterialType {
+    DIFFUSE,
+    SPECULAR,
+    REFRACTION
+}
+
+#[derive(Clone, Copy)]
 pub struct DiffuseMaterial {
-    color: Vector3::<f64>
+    color: Vector3::<f64>,
+    material_type: MaterialType
 }  
 
 impl DiffuseMaterial {
     pub fn new(color: Vector3::<f64>) -> Self {
         Self {
-            color
+            color,
+            material_type: MaterialType::DIFFUSE
         }
     }
 }
@@ -44,16 +58,28 @@ impl Material for DiffuseMaterial {
         ray.set(*pos, direction_out, flux * self.color);
         true
     }
+    fn get_type(&self) -> &MaterialType {
+        &self.material_type
+    }
+    fn get_color(&self) -> &Vector3<f64> {
+        &self.color
+    }
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(*self)
+    }
 }
 
+#[derive(Clone, Copy)]
 pub struct SpecularMaterial {
-    color: Vector3::<f64>
+    color: Vector3::<f64>,
+    material_type: MaterialType
 }
 
 impl SpecularMaterial {
     pub fn new(color: Vector3::<f64>) -> Self {
         Self {
-            color
+            color,
+            material_type: MaterialType::SPECULAR
         }
     }
 }
@@ -78,18 +104,30 @@ impl Material for SpecularMaterial {
         );
         true
     }
+    fn get_type(&self) -> &MaterialType {
+        &self.material_type
+    }
+    fn get_color(&self) -> &Vector3<f64> {
+        &self.color
+    }
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(self.clone())
+    }
 }
 
+#[derive(Clone, Copy)]
 pub struct RefractionMaterial {
     color: Vector3::<f64>,
-    refr_index: f64
+    refr_index: f64,
+    material_type: MaterialType
 }
 
 impl RefractionMaterial {
     pub fn new(color: Vector3::<f64>, refr_index: Option<f64>) -> Self {
         Self {
             color,
-            refr_index: refr_index.unwrap_or(1.5)
+            refr_index: refr_index.unwrap_or(1.5),
+            material_type: MaterialType::REFRACTION
         }
     }
 }
@@ -130,11 +168,20 @@ impl Material for RefractionMaterial {
         }
         true
     }
+    fn get_type(&self) -> &MaterialType {
+        &self.material_type
+    }
+    fn get_color(&self) -> &Vector3<f64> {
+        &self.color
+    }
+    fn clone_box(&self) -> Box<dyn Material> {
+        Box::new(*self)
+    }
 }
 
-pub fn build_material(material_attr: &mut JsonValue) -> Box<dyn Material> {
-    let material_type = material_attr.remove("Type").take_string().unwrap();
-    let color = parse_vector(material_attr.remove("Color"));
+pub fn build_material(material_attr: &JsonValue) -> Box<dyn Material> {
+    let material_type = material_attr["Type"].as_str().unwrap();
+    let color = parse_vector(&material_attr["Color"]);
     if material_type == "DIFF" {
         Box::new(DiffuseMaterial::new(color))
     } else if material_type == "SPEC" {

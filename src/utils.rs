@@ -11,10 +11,10 @@ pub fn gen_vert(vec: &Vector3::<f64>) -> Vector3::<f64> {
     vec.normalize();
     vec
 }
-pub fn parse_vector(mut raw: JsonValue) -> Vector3::<f64> {
+pub fn parse_vector(raw: &JsonValue) -> Vector3::<f64> {
     Vector3::<f64>::from([
-        raw.array_remove(0).as_f64().unwrap(),
-        raw.array_remove(1).as_f64().unwrap(),
-        raw.array_remove(2).as_f64().unwrap()
+        raw[0].as_f64().unwrap(),
+        raw[1].as_f64().unwrap(),
+        raw[2].as_f64().unwrap()
     ])
 }

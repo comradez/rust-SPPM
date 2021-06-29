@@ -90,19 +90,19 @@ impl Camera for DoFCamera {
     }
 }
 
-pub fn build_camera(camera_attr: &mut JsonValue) -> Box<dyn Camera> {
-    let cam_type = camera_attr.remove("Type").take_string().unwrap();
-    let center = parse_vector(camera_attr.remove("Center"));
-    let direction = parse_vector(camera_attr.remove("Direction"));
-    let up = parse_vector(camera_attr.remove("Up"));
-    let angle = camera_attr.remove("Angle").as_f64().unwrap();
-    let width = camera_attr.remove("Width").as_u32().unwrap();
-    let height = camera_attr.remove("Height").as_u32().unwrap();
+pub fn build_camera(camera_attr: &JsonValue) -> Box<dyn Camera> {
+    let cam_type = String::from(camera_attr["Type"].as_str().unwrap());
+    let center = parse_vector(&camera_attr["Center"]);
+    let direction = parse_vector(&camera_attr["Direction"]);
+    let up = parse_vector(&camera_attr["Up"]);
+    let angle = camera_attr["Angle"].as_f64().unwrap();
+    let width = camera_attr["Width"].as_u32().unwrap();
+    let height = camera_attr["Height"].as_u32().unwrap();
     if cam_type == "Perspective" {
         Box::new(PerspectiveCamera::new(center, direction, up, angle, width, height))
     } else if cam_type == "DoF" {
-        let focus = parse_vector(camera_attr.remove("Focus"));
-        let aperture = camera_attr.remove("Aperture").as_f64().unwrap();
+        let focus = parse_vector(&camera_attr["Focus"]);
+        let aperture = camera_attr["Aperture"].as_f64().unwrap();
         Box::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
     } else {
         panic!("Invalid Camera Type!");
