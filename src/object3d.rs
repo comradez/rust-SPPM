@@ -1,7 +1,4 @@
 use core::f64;
-use std::marker::PhantomData;
-use std::usize;
-
 use json::JsonValue;
 use vecmat::matrix::{Matrix3x3, Matrix4x4};
 use vecmat::prelude::NormL2;
@@ -22,9 +19,6 @@ impl Group {
     }
     pub fn add_object(&mut self, obj: Box<dyn Object3d>) {
         self.group.push(obj);
-    }
-    pub fn get_size(&self) -> usize {
-        self.group.len()
     }
 }
 
@@ -169,12 +163,11 @@ impl Object3d for Triangle {
 pub struct Transform {
     object: Box<dyn Object3d>, //变形前的对象
     transform: Matrix4x4<f64>,
-    phantom: PhantomData<dyn Material>
 }
 
 impl Transform {
     pub fn new(object: Box<dyn Object3d>, transform: Matrix4x4<f64>) -> Self {
-        Self { object, transform: transform.inv(), phantom: PhantomData::default() }
+        Self { object, transform: transform.inv() }
     }
 }
 
