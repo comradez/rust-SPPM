@@ -9,6 +9,7 @@ mod object3d;
 mod hit;
 mod matrix;
 mod mesh;
+mod floydrivest;
 use crate::sceneparser::build_sceneparser;
 fn main() {
     let mut args = env::args().skip(1);

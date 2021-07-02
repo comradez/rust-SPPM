@@ -6,6 +6,7 @@ use vecmat::vector::{Vector3, Vector4};
 use vecmat::traits::Dot;
 use crate::{hit::Hit, materials::Material, ray::Ray, utils::parse_vector};
 use crate::matrix::{gen_rotate, gen_translation};
+use crate::mesh::build_mesh;
 pub trait Object3d {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit>;
 }
@@ -61,7 +62,7 @@ impl Object3d for Plane {
             return None;
         } else {
             let t = (self.d - z1) / z2;
-            return if t <= tmin { None } else { Some(Hit::new(t, &self.material, self.normal)) };
+            return if t <= tmin { None } else { Some(Hit::new(t, self.material.clone_box(), self.normal)) };
         }
     }
 }
@@ -95,11 +96,11 @@ impl Object3d for Sphere {
             if t1 >= tmin {
                 let normal = ray.point_at_param(t1) - self.center;
                 normal.normalize();
-                Some(Hit::new(t1, &self.material, normal))
+                Some(Hit::new(t1, self.material.clone_box(), normal))
             } else if t2 >= tmin {
                 let normal = ray.point_at_param(t2) - self.center;
                 normal.normalize();
-                Some(Hit::new(t2, &self.material, normal))
+                Some(Hit::new(t2, self.material.clone_box(), normal))
             } else {
                 None
             }
@@ -152,7 +153,7 @@ impl Object3d for Triangle {
                     self.face_normal
                 };
                 norm.normalize();
-                Some(Hit::new(t, &self.material, norm))
+                Some(Hit::new(t, self.material.clone_box(), norm))
             } else {
                 None
             }
@@ -294,6 +295,7 @@ pub fn build_object3d(object_attr: &JsonValue, materials: &Vec<Box<dyn Material>
         "Triangle" => build_triangle(object_attr, materials),
         "Sphere" => build_sphere(object_attr, materials),
         "Transform" => build_transform(object_attr, materials),
+        "Mesh" => build_mesh(object_attr, materials),
         _ => panic!("Wrong object type")
     }
 }

@@ -1,14 +1,19 @@
 use crate::materials::Material;
 use vecmat::vector::Vector3;
-pub struct Hit<'a> {
+
+pub struct Hit {
     t: f64,
-    material: &'a Box<dyn Material>,
+    material: Box<dyn Material>,
     normal: Vector3::<f64>
 }
 
-impl<'a> Hit<'a> {
-    pub fn new(t: f64, material: &'a Box<dyn Material>, normal: Vector3::<f64>) -> Self { 
+impl Hit {
+    pub fn new(t: f64, material: Box<dyn Material>, normal: Vector3::<f64>) -> Self { 
         Self { t, material, normal } 
+    }
+
+    pub fn clone_obj(&self) -> Self {
+        Self { t: self.t, material: self.material.clone_box(), normal: self.normal }
     }
 
     pub fn get_t(&self) -> f64 {
