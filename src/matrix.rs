@@ -1,6 +1,9 @@
 use vecmat::vector::Vector3;
 use vecmat::matrix::Matrix4x4;
+use vecmat::Vector;
 use core::f64;
+use std::usize;
+// use std::iter::zip;
 pub fn gen_translation(translation: &Vector3<f64>) -> Matrix4x4<f64> {
     Matrix4x4::from_array_of_arrays([
         [1., 0., 0., translation[0]],
@@ -39,4 +42,26 @@ pub fn gen_rotate(degree: f64, dim: usize) -> Matrix4x4<f64> {
         ]),
         _ => panic!("Wrong dimention")
     }    
+}
+
+pub trait IsF32OrF64 : Sized {
+    fn min(self, other: Self) -> Self {
+        self.min(other)
+    }
+    fn max(self, other: Self) -> Self {
+        self.max(other)
+    }
+}
+
+impl IsF32OrF64 for f32 {}
+impl IsF32OrF64 for f64 {}
+
+pub fn get_min<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N>) -> Vector<T, N> 
+    where T: Copy + Clone + IsF32OrF64 {
+    Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.min(*y))).unwrap()
+}
+
+pub fn get_max<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N>) -> Vector<T, N> 
+    where T: Copy + Clone + IsF32OrF64 {
+    Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.max(*y))).unwrap()
 }
