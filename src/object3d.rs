@@ -1,4 +1,5 @@
 use core::f64;
+use std::rc::Rc;
 use json::JsonValue;
 use vecmat::matrix::{Matrix3x3, Matrix4x4};
 use vecmat::prelude::NormL2;
@@ -43,13 +44,13 @@ impl Object3d for Group {
 }
 
 pub struct Plane {
-    material: Box<dyn Material>,
+    material: Rc<dyn Material>,
     normal: Vector3::<f64>,
     d: f64,
 }
 
 impl Plane {
-    pub fn new(material: Box<dyn Material>, normal: Vector3::<f64>, d: f64) -> Self { 
+    pub fn new(material: Rc<dyn Material>, normal: Vector3::<f64>, d: f64) -> Self { 
         Self { material, normal, d }
     }
 }
@@ -62,19 +63,19 @@ impl Object3d for Plane {
             return None;
         } else {
             let t = (self.d - z1) / z2;
-            return if t <= tmin { None } else { Some(Hit::new(t, self.material.clone_box(), self.normal)) };
+            return if t <= tmin { None } else { Some(Hit::new(t, Rc::clone(&self.material), self.normal)) };
         }
     }
 }
 
 pub struct Sphere {
-    material: Box<dyn Material>,
+    material: Rc<dyn Material>,
     center: Vector3::<f64>,
     radius: f64,
 }
 
 impl Sphere {
-    pub fn new(material: Box<dyn Material>, center: Vector3::<f64>, radius: f64) -> Self {
+    pub fn new(material: Rc<dyn Material>, center: Vector3::<f64>, radius: f64) -> Self {
         Self { material, center, radius }
     }
 }
@@ -96,11 +97,11 @@ impl Object3d for Sphere {
             if t1 >= tmin {
                 let normal = ray.point_at_param(t1) - self.center;
                 normal.normalize();
-                Some(Hit::new(t1, self.material.clone_box(), normal))
+                Some(Hit::new(t1, Rc::clone(&self.material), normal))
             } else if t2 >= tmin {
                 let normal = ray.point_at_param(t2) - self.center;
                 normal.normalize();
-                Some(Hit::new(t2, self.material.clone_box(), normal))
+                Some(Hit::new(t2, Rc::clone(&self.material), normal))
             } else {
                 None
             }
@@ -109,14 +110,14 @@ impl Object3d for Sphere {
 }
 
 pub struct Triangle {
-    material: Box<dyn Material>,
+    material: Rc<dyn Material>,
     vertices: [Vector3::<f64>; 3],
     normals: Option<[Vector3::<f64>; 3]>,
     face_normal: Vector3::<f64>
 } //没有实现纹理贴图所以texcoords先不写了
 
 impl Triangle {
-    pub fn new(material: Box<dyn Material>, vertices: [Vector3::<f64>; 3], normals: Option<[Vector3::<f64>; 3]>) -> Self { 
+    pub fn new(material: Rc<dyn Material>, vertices: [Vector3::<f64>; 3], normals: Option<[Vector3::<f64>; 3]>) -> Self { 
         let face_normal: Vector3::<f64> = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]);
         face_normal.normalize();
         Self { material, vertices, normals, face_normal } 
@@ -153,7 +154,7 @@ impl Object3d for Triangle {
                     self.face_normal
                 };
                 norm.normalize();
-                Some(Hit::new(t, self.material.clone_box(), norm))
+                Some(Hit::new(t, Rc::clone(&self.material), norm))
             } else {
                 None
             }
@@ -201,7 +202,7 @@ impl Object3d for Transform {
     }
 }
 
-pub fn build_group(group_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Group> {
+pub fn build_group(group_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Group> {
     let mut group = Group::new();
     for object in group_attr.members() {
         group.add_object(build_object3d(object, materials));
@@ -209,14 +210,14 @@ pub fn build_group(group_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -
     Box::new(group)
 }
 
-pub fn build_plane(plane_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Plane> {
+pub fn build_plane(plane_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Plane> {
     let material_index = plane_attr["MaterialIndex"].as_usize().unwrap();
     let normal = parse_vector(&plane_attr["Normal"]);
     let d = plane_attr["Offset"].as_f64().unwrap();
     Box::new(Plane::new(materials[material_index].clone_box(), normal, d))
 }
 
-pub fn build_triangle(triangle_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Triangle> {
+pub fn build_triangle(triangle_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Triangle> {
     let material_index = triangle_attr["MaterialIndex"].as_usize().unwrap();
     let vertices = &triangle_attr["Vertices"];
     let vertices = [
@@ -237,14 +238,14 @@ pub fn build_triangle(triangle_attr: &JsonValue, materials: &Vec<Box<dyn Materia
     Box::new(Triangle::new(materials[material_index].clone_box(), vertices, normals))
 }
 
-pub fn build_sphere(sphere_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Sphere> {
+pub fn build_sphere(sphere_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Sphere> {
     let material_index = sphere_attr["MaterialIndex"].as_usize().unwrap();
     let center = parse_vector(&sphere_attr["Center"]);
     let radius = sphere_attr["Radius"].as_f64().unwrap();
     Box::new(Sphere::new(materials[material_index].clone_box(), center, radius))
 }
 
-pub fn build_transform(transform_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<Transform> {
+pub fn build_transform(transform_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Transform> {
     let mut matrix: Matrix4x4<f64> = Matrix4x4::diagonal(Vector4::<f64>::from([1., 1., 1., 1.]));
     let object: Box<dyn Object3d> = build_object3d(transform_attr, materials);
     for process in transform_attr.members() {
@@ -287,7 +288,7 @@ pub fn build_transform(transform_attr: &JsonValue, materials: &Vec<Box<dyn Mater
     Box::new(Transform::new(object, matrix))
 }
 
-pub fn build_object3d(object_attr: &JsonValue, materials: &Vec<Box<dyn Material>>) -> Box<dyn Object3d> {
+pub fn build_object3d(object_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<dyn Object3d> {
     let object_type = object_attr["Type"].as_str().unwrap();
     match object_type {
         "Group" => build_group(object_attr, materials),

@@ -1,5 +1,5 @@
 use core::f64;
-
+use std::rc::Rc;
 use json::JsonValue;
 use vecmat::matrix::Matrix3x3;
 use vecmat::{Matrix, Vector, traits::Dot, vector::Vector3};
@@ -103,7 +103,7 @@ impl Camera for DoFCamera {
         let dir = rot.dot(dir);
         dir.normalize();
         let temp_ray = Ray::new(self.center, dir, None);
-        let temp_material = Box::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
+        let temp_material = Rc::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
         let focus_plane = Plane::new(temp_material, self.direction, self.focus_dist);
         let hit = focus_plane.intersect(&temp_ray, 0.015).unwrap(); //这里保证有交
         let delta = self.aperture * (normal_x * self.horizental + normal_y * self.up);

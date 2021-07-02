@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::camera::{build_camera, Camera};
 use crate::lights::{build_light, Light};
 use crate::materials::{build_material, Material};
@@ -6,7 +7,7 @@ use crate::object3d::{build_group, Group};
 pub struct SceneParser {
     camera: Box<dyn Camera>,
     lights: Vec<Box<dyn Light>>,
-    materials: Vec<Box<dyn Material>>,
+    materials: Vec<Rc<dyn Material>>,
     group: Box<Group>,
 }
 pub fn build_sceneparser(scene_name: String) -> SceneParser {
@@ -27,7 +28,7 @@ pub fn build_sceneparser(scene_name: String) -> SceneParser {
         .members()
         .map(|x| build_light(x))
         .collect();
-    let materials: Vec<Box<dyn Material>> = materials
+    let materials: Vec<Rc<dyn Material>> = materials
         .members()
         .map(|x| build_material(x))
         .collect();
