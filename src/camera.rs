@@ -114,20 +114,22 @@ impl Camera for DoFCamera {
 }
 
 pub fn build_camera(camera_attr: &JsonValue) -> Box<dyn Camera> {
-    let cam_type = String::from(camera_attr["Type"].as_str().unwrap());
+    let cam_type = camera_attr["Type"].as_str().unwrap();
     let center = parse_vector(&camera_attr["Center"]);
     let direction = parse_vector(&camera_attr["Direction"]);
     let up = parse_vector(&camera_attr["Up"]);
     let angle = camera_attr["Angle"].as_f64().unwrap();
     let width = camera_attr["Width"].as_u32().unwrap();
     let height = camera_attr["Height"].as_u32().unwrap();
-    if cam_type == "Perspective" {
-        Box::new(PerspectiveCamera::new(center, direction, up, angle, width, height))
-    } else if cam_type == "DoF" {
-        let focus = parse_vector(&camera_attr["Focus"]);
-        let aperture = camera_attr["Aperture"].as_f64().unwrap();
-        Box::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
-    } else {
-        panic!("Invalid Camera Type!");
+    match cam_type {
+        "Perspective" => Box::new(PerspectiveCamera::new(center, direction, up, angle, width, height)),
+        "DoF" => {
+            let focus = parse_vector(&camera_attr["Focus"]);
+            let aperture = camera_attr["Aperture"].as_f64().unwrap();
+            Box::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
+        },
+        _ => {
+            panic!("Invalid Camera Type!");
+        }
     }
 }

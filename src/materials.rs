@@ -182,13 +182,10 @@ impl Material for RefractionMaterial {
 pub fn build_material(material_attr: &JsonValue) -> Box<dyn Material> {
     let material_type = material_attr["Type"].as_str().unwrap();
     let color = parse_vector(&material_attr["Color"]);
-    if material_type == "DIFF" {
-        Box::new(DiffuseMaterial::new(color))
-    } else if material_type == "SPEC" {
-        Box::new(SpecularMaterial::new(color))
-    } else if material_type == "REFR" {
-        Box::new(RefractionMaterial::new(color, None))
-    } else {
-        panic!("Wrong material type!");
+    match material_type {
+        "DIFF" => Box::new(DiffuseMaterial::new(color)),
+        "SPEC" => Box::new(SpecularMaterial::new(color)),
+        "REFR" => Box::new(RefractionMaterial::new(color, None)),
+        _ => panic!("Wrong material type!")
     }
 }

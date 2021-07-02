@@ -1,7 +1,7 @@
 use std::cmp::{min, max, Ordering};
 
-// Listen, dear Mr. Francesco Iannelli
-// Your crate does such a great job
+// Dear Mr. Francesco Iannelli:
+// Your crate does a great job on implementing the algorithm.
 // however, I need to compare something *inside* a vector
 // which means I need to specify the left pos and the right pos
 // so I have to copy your floydrivest function and use it directly 
