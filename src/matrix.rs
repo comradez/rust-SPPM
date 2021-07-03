@@ -1,10 +1,13 @@
+use image::{ImageBuffer, ImageResult, Rgb, RgbImage};
 use vecmat::vector::Vector3;
 use vecmat::matrix::Matrix4x4;
 use vecmat::Vector;
 use core::f64;
 use json::JsonValue;
 use std::ops::{Div, Mul};
-use std::usize;
+use std::{u8, usize};
+
+use crate::photon::HitPoint;
 // use std::iter::zip;
 pub fn gen_translation(translation: &Vector3<f64>) -> Matrix4x4<f64> {
     Matrix4x4::from_array_of_arrays([
@@ -116,4 +119,24 @@ pub fn parse_vector(raw: &JsonValue) -> Vector3::<f64> {
         raw[1].as_f64().unwrap(),
         raw[2].as_f64().unwrap()
     ])
+}
+
+pub fn trunc(color: f64) -> u8 {
+    (color * 256.) as u8
+}
+
+pub fn render(pic: &Vec<Vec<HitPoint>>, output_file: &str) -> ImageResult<()> {
+    let height = pic.len() as u32;
+    let width = pic[0].len() as u32;
+    let img = ImageBuffer::from_fn(
+        width,
+        height,
+        |x, y| {image::Rgb([
+            trunc(pic[x as usize][y as usize].tau.x()),
+            trunc(pic[x as usize][y as usize].tau.y()),
+            trunc(pic[x as usize][y as usize].tau.z())
+        ])}
+    );
+    img.save(output_file)?;
+    Ok(())
 }

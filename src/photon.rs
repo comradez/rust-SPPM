@@ -6,10 +6,10 @@ use lazy_static::lazy_static;
 use crate::{floydrivest::floydrivest, matrix::{elementwise_product, get_dist, get_max, get_min}};
 #[derive(Clone, Copy)]
 pub struct Photon {
-    pos: Vector3<f64>,
-    dir: Vector3<f64>,
-    norm: Vector3<f64>,
-    flux: Vector3<f64>
+    pub pos: Vector3<f64>,
+    pub dir: Vector3<f64>,
+    pub norm: Vector3<f64>,
+    pub flux: Vector3<f64>
 }
 
 impl Photon {
@@ -21,10 +21,10 @@ impl Photon {
 static ALPHA: f64 = 0.7;
 
 pub struct HitPoint {
-    radius: f64,
-    n: f64,
-    tau: Vector3<f64>,
-    pos: Option<Vector3<f64>>,
+    pub radius: f64,
+    pub n: f64,
+    pub tau: Vector3<f64>,
+    pub pos: Option<Vector3<f64>>,
 }
 
 impl HitPoint {
