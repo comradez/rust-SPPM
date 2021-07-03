@@ -3,13 +3,13 @@ mod sceneparser;
 mod camera;
 mod ray;
 mod lights;
-mod utils;
 mod materials;
 mod object3d;
 mod hit;
 mod matrix;
 mod mesh;
 mod floydrivest;
+mod photon;
 use crate::sceneparser::build_sceneparser;
 fn main() {
     let mut args = env::args().skip(1);

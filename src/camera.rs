@@ -6,7 +6,7 @@ use vecmat::{Matrix, Vector, traits::Dot, vector::Vector3};
 use rand::{thread_rng, Rng};
 
 use crate::{materials::DiffuseMaterial, ray::Ray};
-use crate::utils::parse_vector;
+use crate::matrix::parse_vector;
 use crate::object3d::{Object3d, Plane};
 
 pub struct PerspectiveCamera {

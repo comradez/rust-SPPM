@@ -153,20 +153,20 @@ impl Mesh {
                 mid
             )));
             if left < mid {
-                if let Some(real_root) = root {
-                    Self::build(&mut real_root.lchild, t, left, mid, dep + 1);
-                    if let Some(real_lchild) = &real_root.lchild {
-                        real_root.min_pos = get_min(&real_root.min_pos, &real_lchild.min_pos);
-                        real_root.max_pos = get_max(&real_root.max_pos, &real_lchild.max_pos);
+                if let Some(root) = root {
+                    Self::build(&mut root.lchild, t, left, mid, dep + 1);
+                    if let Some(lchild) = &root.lchild {
+                        root.min_pos = get_min(&root.min_pos, &lchild.min_pos);
+                        root.max_pos = get_max(&root.max_pos, &lchild.max_pos);
                     }
                 }
             }
             if mid + 1 < right {
-                if let Some(real_root) = root {
-                    Self::build(&mut real_root.rchild, t, mid + 1, right, dep + 1);
-                    if let Some(real_rchild) = &real_root.rchild {
-                        real_root.min_pos = get_min(&real_root.min_pos, &real_rchild.min_pos);
-                        real_root.max_pos = get_max(&real_root.max_pos, &real_rchild.max_pos);
+                if let Some(root) = root {
+                    Self::build(&mut root.rchild, t, mid + 1, right, dep + 1);
+                    if let Some(rchild) = &root.rchild {
+                        root.min_pos = get_min(&root.min_pos, &rchild.min_pos);
+                        root.max_pos = get_max(&root.max_pos, &rchild.max_pos);
                     }
                 }
             }

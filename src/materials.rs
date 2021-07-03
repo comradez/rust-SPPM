@@ -4,7 +4,7 @@ use std::rc::Rc;
 use json::JsonValue;
 use vecmat::{vector::Vector3, traits::Dot};
 use crate::ray::Ray;
-use crate::utils::{gen_vert, parse_vector};
+use crate::matrix::{gen_vert, parse_vector};
 use rand::{thread_rng, Rng};
 
 pub trait Material: Any {

@@ -2,7 +2,8 @@ use vecmat::vector::Vector3;
 use vecmat::matrix::Matrix4x4;
 use vecmat::Vector;
 use core::f64;
-use std::ops::Div;
+use json::JsonValue;
+use std::ops::{Div, Mul};
 use std::usize;
 // use std::iter::zip;
 pub fn gen_translation(translation: &Vector3<f64>) -> Matrix4x4<f64> {
@@ -82,3 +83,37 @@ pub fn elementwise_division<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N
     Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.div(*y))).unwrap()
 }
 
+pub fn elementwise_product<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N>) -> Vector<T, N>
+    where T: Copy + Clone + Mul<Output = T> {
+    Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.mul(*y))).unwrap()
+}
+
+pub fn get_dist(l: f64, r: f64, v: f64) -> f64 {
+    assert!(l <= r);
+    if v < l {
+        l - v
+    } else if l <= v && v <= r {
+        0.
+    } else {
+        v - r
+    }
+}
+
+pub fn gen_vert(vec: &Vector3::<f64>) -> Vector3::<f64> {
+    let temp: Vector3::<f64>;
+    if vec.x() > 0.2 {
+        temp = Vector3::<f64>::from([0., 1., 0.]);
+    } else {
+        temp = Vector3::<f64>::from([1., 0., 0.]);
+    }
+    let vec: Vector3::<f64> = vec.cross(temp);
+    vec.normalize();
+    vec
+}
+pub fn parse_vector(raw: &JsonValue) -> Vector3::<f64> {
+    Vector3::<f64>::from([
+        raw[0].as_f64().unwrap(),
+        raw[1].as_f64().unwrap(),
+        raw[2].as_f64().unwrap()
+    ])
+}

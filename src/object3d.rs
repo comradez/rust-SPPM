@@ -5,7 +5,7 @@ use vecmat::matrix::{Matrix3x3, Matrix4x4};
 use vecmat::prelude::NormL2;
 use vecmat::vector::{Vector3, Vector4};
 use vecmat::traits::Dot;
-use crate::{hit::Hit, materials::Material, ray::Ray, utils::parse_vector};
+use crate::{hit::Hit, materials::Material, ray::Ray, matrix::parse_vector};
 use crate::matrix::{gen_rotate, gen_translation};
 use crate::mesh::build_mesh;
 pub trait Object3d {

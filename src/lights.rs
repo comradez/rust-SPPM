@@ -3,7 +3,7 @@ use core::f64;
 use vecmat::vector::Vector3;
 use json::JsonValue;
 use crate::ray::Ray;
-use crate::utils::{gen_vert, parse_vector};
+use crate::matrix::{gen_vert, parse_vector};
 use rand::{thread_rng, Rng};
 
 pub trait Light {
