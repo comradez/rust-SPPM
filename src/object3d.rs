@@ -2,7 +2,6 @@ use core::f64;
 use std::rc::Rc;
 use json::JsonValue;
 use vecmat::matrix::{Matrix3x3, Matrix4x4};
-use vecmat::prelude::NormL2;
 use vecmat::vector::{Vector3, Vector4};
 use vecmat::traits::Dot;
 use crate::{hit::Hit, materials::Material, ray::Ray, matrix::parse_vector};
@@ -83,10 +82,10 @@ impl Sphere {
 impl Object3d for Sphere {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit> {
         let v1 = ray.get_direction();
-        let v2 = ray.get_origin();
-        let a = v1.norm_l2_sqr();
-        let b = 2. * v1.dot(*v2);
-        let c = v2.norm_l2_sqr() - self.radius * self.radius;
+        let v2 = *ray.get_origin() - self.center;
+        let a = v1.square_length();
+        let b = 2. * v1.dot(v2);
+        let c = v2.square_length() - self.radius * self.radius;
         let delta = b * b - 4. * a * c;
         if delta < 0. {
             None
@@ -95,12 +94,10 @@ impl Object3d for Sphere {
             let t1 = (-b - qd) / (2. * a);
             let t2 = (-b + qd) / (2. * a);
             if t1 >= tmin {
-                let normal = ray.point_at_param(t1) - self.center;
-                normal.normalize();
+                let normal = (ray.point_at_param(t1) - self.center).normalize();
                 Some(Hit::new(t1, Rc::clone(&self.material), normal))
             } else if t2 >= tmin {
-                let normal = ray.point_at_param(t2) - self.center;
-                normal.normalize();
+                let normal = (ray.point_at_param(t2) - self.center).normalize();
                 Some(Hit::new(t2, Rc::clone(&self.material), normal))
             } else {
                 None
@@ -118,8 +115,7 @@ pub struct Triangle {
 
 impl Triangle {
     pub fn new(material: Rc<dyn Material>, vertices: [Vector3::<f64>; 3], normals: Option<[Vector3::<f64>; 3]>) -> Self { 
-        let face_normal: Vector3::<f64> = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]);
-        face_normal.normalize();
+        let face_normal: Vector3::<f64> = (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).normalize();
         Self { material, vertices, normals, face_normal } 
     }
 }
@@ -152,8 +148,7 @@ impl Object3d for Triangle {
                     normals[0] * w0 + normals[1] * w1 + normals[2] * w2
                 } else {
                     self.face_normal
-                };
-                norm.normalize();
+                }.normalize();
                 Some(Hit::new(t, Rc::clone(&self.material), norm))
             } else {
                 None

@@ -1,5 +1,4 @@
 use core::f64;
-use std::any::Any;
 use std::rc::Rc;
 use json::JsonValue;
 use vecmat::{vector::Vector3, traits::Dot};
@@ -7,7 +6,7 @@ use crate::ray::Ray;
 use crate::matrix::{gen_vert, parse_vector};
 use rand::{thread_rng, Rng};
 
-pub trait Material: Any {
+pub trait Material {
     fn bsdf(&self, ray: &mut Ray, norm: &Vector3::<f64>, pos: &Vector3::<f64>, russian_roulette: bool) -> bool;
     fn get_type(&self) -> &MaterialType;
     fn get_color(&self) -> &Vector3<f64>;
@@ -49,8 +48,7 @@ impl Material for DiffuseMaterial {
             }
         }
         let x_axis = gen_vert(norm);
-        let y_axis: Vector3::<f64> = x_axis.cross(*norm);
-        y_axis.normalize();
+        let y_axis: Vector3::<f64> = x_axis.cross(*norm).normalize();
         let theta: f64 = 2. * f64::consts::PI * rng.gen_range(0. .. 1.);
         let phi: f64 = f64::acos(2. * rng.gen_range(0. .. 1.) - 1.);
         let direction_out = f64::cos(theta) * f64::sin(phi) * x_axis + 
@@ -157,7 +155,7 @@ impl Material for RefractionMaterial {
             ray.set(*pos, refl_d, flux * self.color);
         } else {
             let refr_d = ratio * *direction_in - *norm * into_dir * (proj * ratio + f64::sqrt(cos_out_sqr));
-            refr_d.normalize();
+            let refr_d = refr_d.normalize();
             let r_0 = (self.refr_index - 1.) * (self.refr_index - 1.) / (self.refr_index + 1.) / (self.refr_index + 1.);
             let c = 1. - if into { -1. * proj } else { refr_d.dot(*norm) };
             let r_e = r_0 + (1. - r_0) * c * c * c * c * c;

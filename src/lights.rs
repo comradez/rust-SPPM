@@ -52,8 +52,7 @@ pub struct ConeLight {
 impl ConeLight {
     pub fn new(scale: Option<f64>, pos: Vector3::<f64>, norm: Vector3::<f64>, flux: Vector3::<f64>, angle: f64) -> Self {
         let x_axis = gen_vert(&norm);
-        let y_axis: Vector3::<f64> = x_axis.cross(norm);
-        y_axis.normalize();
+        let y_axis: Vector3::<f64> = x_axis.cross(norm).normalize();
         Self {
             scale: scale.unwrap_or(1.),
             pos, norm, flux, x_axis, y_axis, angle
@@ -88,8 +87,7 @@ pub struct DirectionCircleLight {
 impl DirectionCircleLight {
     pub fn new(scale: Option<f64>, pos: Vector3::<f64>, norm: Vector3::<f64>, flux: Vector3::<f64>, radius: f64) -> Self {
         let x_axis = gen_vert(&norm);
-        let y_axis: Vector3::<f64> = x_axis.cross(norm);
-        y_axis.normalize();
+        let y_axis: Vector3::<f64> = x_axis.cross(norm).normalize();
         Self {
             scale: scale.unwrap_or(1.),
             pos, norm, flux, x_axis, y_axis, radius

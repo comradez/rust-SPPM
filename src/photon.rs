@@ -2,9 +2,9 @@ use core::f64;
 use std::cmp::Ordering;
 use adqselect::nth_element;
 
-use vecmat::{prelude::NormL2, vector::Vector3, traits::Dot};
+use vecmat::{vector::Vector3, traits::Dot};
 use lazy_static::lazy_static;
-use crate::matrix::{elementwise_product, get_dist, get_max, get_min};
+use crate::matrix::{get_dist, get_max, get_min};
 #[derive(Clone, Copy)]
 pub struct Photon {
     pub pos: Vector3<f64>,
@@ -139,18 +139,17 @@ impl KDTree {
     }
     pub fn query(
         &self, p: &Option<Box<Node>>, hitpoint: &mut HitPoint, 
-        color: &Vector3<f64>, normal: &Vector3<f64>, scale: f64
+        color: &Vector3<f64>, normal: &Vector3<f64>, scale: &Vector3<f64>
     ) {
         let hit_pos = hitpoint.pos.unwrap();
         if let Some(p) = p {
             if Self::intersect(p, hitpoint) {
                 let point = &self.map[p.photon_index];
                 let dist = point.pos - hit_pos;
-                if dist.norm_l2() <= hitpoint.radius {
+                if dist.square_length() <= hitpoint.radius {
                     hitpoint.n += 1.;
-                    if normal.dot(point.dir) < 0. {
-                        let temp_color = elementwise_product(&color, &point.flux);
-                        hitpoint.tau += temp_color * scale / f64::consts::PI;
+                    if normal.dot(point.dir) < 0. {                    
+                        hitpoint.tau += *color * point.flux * *scale / f64::consts::PI
                     }
                 }
                 self.query(&p.lchild, hitpoint, color, normal, scale);
@@ -158,7 +157,7 @@ impl KDTree {
             }
         }
     }
-    pub fn search(&self, hitpoint: &mut HitPoint, color: &Vector3<f64>, normal: &Vector3<f64>, scale: f64) {
+    pub fn search(&self, hitpoint: &mut HitPoint, color: &Vector3<f64>, normal: &Vector3<f64>, scale: &Vector3<f64>) {
         self.query(&self.root, hitpoint, color, normal, scale)
     }
 }

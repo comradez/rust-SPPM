@@ -7,7 +7,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: Vector3::<f64>, direction: Vector3::<f64>, color: Option<Vector3::<f64>>) -> Self {
-        direction.normalize();
+        let direction = direction.normalize();
         Self { 
             origin,
             direction,
@@ -25,6 +25,9 @@ impl Ray {
     }
     pub fn get_flux(&self) -> &Vector3::<f64> {
         &self.color
+    }
+    pub fn set_color(&mut self, color: Vector3::<f64>) {
+        self.color = color;
     }
     pub fn set(&mut self, origin: Vector3::<f64>, direction: Vector3::<f64>, color: Vector3::<f64>) {
         self.origin = origin;

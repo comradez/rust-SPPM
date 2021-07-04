@@ -1,13 +1,10 @@
-use image::{Rgb, ImageResult, ImageBuffer};
 use vecmat::vector::Vector3;
 use vecmat::matrix::Matrix4x4;
 use vecmat::Vector;
 use core::f64;
 use json::JsonValue;
-use std::ops::{Div, Mul};
+use std::ops::{Div};
 use std::{u8, usize};
-
-use crate::photon::HitPoint;
 // use std::iter::zip;
 pub fn gen_translation(translation: &Vector3<f64>) -> Matrix4x4<f64> {
     Matrix4x4::from_array_of_arrays([
@@ -86,11 +83,6 @@ pub fn elementwise_division<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N
     Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.div(*y))).unwrap()
 }
 
-pub fn elementwise_product<T, const N: usize>(a: &Vector<T, N>, b: &Vector<T, N>) -> Vector<T, N>
-    where T: Copy + Clone + Mul<Output = T> {
-    Vector::<T, N>::try_from_iter(a.zip(*b).iter().map(|(x, y)| x.mul(*y))).unwrap()
-}
-
 pub fn get_dist(l: f64, r: f64, v: f64) -> f64 {
     assert!(l <= r);
     if v < l {
@@ -109,8 +101,7 @@ pub fn gen_vert(vec: &Vector3::<f64>) -> Vector3::<f64> {
     } else {
         temp = Vector3::<f64>::from([1., 0., 0.]);
     }
-    let vec: Vector3::<f64> = vec.cross(temp);
-    vec.normalize();
+    let vec: Vector3::<f64> = vec.cross(temp).normalize();
     vec
 }
 pub fn parse_vector(raw: &JsonValue) -> Vector3::<f64> {
@@ -122,22 +113,8 @@ pub fn parse_vector(raw: &JsonValue) -> Vector3::<f64> {
 }
 
 pub fn trunc(color: f64) -> u8 {
-    (color * 256.) as u8
-}
-
-pub fn render(pic: &Vec<Vec<HitPoint>>, output_file: &str) -> ImageResult<()> {
-    let width = pic.len() as u32;
-    let height = pic[0].len() as u32;
-    println!("width {}, height {}", width, height);
-    let img = ImageBuffer::from_fn(
-        width,
-        height,
-        |x, y| {Rgb([
-            trunc(pic[x as usize][(height - 1 - y) as usize].tau.x()),
-            trunc(pic[x as usize][(height - 1 - y) as usize].tau.y()),
-            trunc(pic[x as usize][(height - 1 - y) as usize].tau.z())
-        ])}
-    );
-    img.save(output_file)?;
-    Ok(())
+    // if color > 1. {
+    //     println!("color is {}, more than 1!", color);
+    // }
+    (color * 255.) as u8
 }

@@ -21,11 +21,11 @@ pub struct PerspectiveCamera {
 
 impl PerspectiveCamera {
     pub fn new(center: Vector3::<f64>, direction: Vector3::<f64>, up: Vector3::<f64>, angle: f64, width: u32, height: u32) -> Self {
-        direction.normalize();
+        let direction = direction.normalize();
         let horizental: Vector3::<f64> = direction.cross(up);
-        horizental.normalize();
+        let horizental = horizental.normalize();
         let up: Vector3::<f64> = horizental.cross(direction);
-        let angle = angle / std::f64::consts::PI * 180.0;
+        let angle = angle * std::f64::consts::PI / 180.0;
         Self { 
             center, direction, horizental, up, 
             width, height,
@@ -48,11 +48,11 @@ pub struct DoFCamera {
 
 impl DoFCamera {
     pub fn new(center: Vector3::<f64>, direction: Vector3::<f64>, up: Vector3::<f64>, angle: f64, width: u32, height: u32, focus: Vector3::<f64>, aperture: f64) -> Self {
-        direction.normalize();
+        let direction = direction.normalize();
         let horizental: Vector3::<f64> = direction.cross(up);
-        horizental.normalize();
+        let horizental = horizental.normalize();
         let up: Vector3::<f64> = horizental.cross(direction);
-        let angle = angle / std::f64::consts::PI * 180.0;
+        let angle = angle * std::f64::consts::PI / 180.0;
         let focus_dist = focus.dot(direction);
         Self {
             center, direction, horizental, up, 
@@ -62,8 +62,6 @@ impl DoFCamera {
         }
     }
 }
-
-
 
 pub trait Camera {
     fn generate_ray(&self, point: &Vector::<f64, 2>) -> Ray;
@@ -81,8 +79,7 @@ impl Camera for PerspectiveCamera {
         let rot = Matrix::<f64, 3, 3>::from_array_of_vectors([
             self.horizental, self.up, self.direction
         ]).transpose();
-        let dir = rot.dot(dir);
-        dir.normalize();
+        let dir = rot.dot(dir).normalize();
         Ray::new(self.center, dir, Some(Vector3::<f64>::from([1., 1., 1.])))
     }
     fn get_width(&self) -> u32 {
@@ -108,15 +105,14 @@ impl Camera for DoFCamera {
         let rot = Matrix3x3::<f64>::from_array_of_vectors([
             self.horizental, self.up, self.direction
         ]).transpose();
-        let dir = rot.dot(dir);
-        dir.normalize();
+        let dir = rot.dot(dir).normalize();
         let temp_ray = Ray::new(self.center, dir, None);
         let temp_material = Rc::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
         let focus_plane = Plane::new(temp_material, self.direction, self.focus_dist);
         let hit = focus_plane.intersect(&temp_ray, 0.015).unwrap(); //这里保证有交
-        let delta = self.aperture * (normal_x * self.horizental + normal_y * self.up);
-        let real_dir = temp_ray.point_at_param(hit.get_t()) - (self.center + delta);
-        real_dir.normalize();
+        let delta: Vector3<f64> = self.aperture * (normal_x * self.horizental + normal_y * self.up);
+        let real_dir: Vector3<f64> = temp_ray.point_at_param(hit.get_t()) - (self.center + delta);
+        let real_dir = real_dir.normalize();
         Ray::new(self.center + delta, real_dir, Some(Vector3::<f64>::from([1., 1., 1.])))
     }
     fn get_width(&self) -> u32 {
@@ -142,8 +138,6 @@ pub fn build_camera(camera_attr: &JsonValue) -> Box<dyn Camera> {
             let aperture = camera_attr["Aperture"].as_f64().unwrap();
             Box::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
         },
-        _ => {
-            panic!("Invalid Camera Type!");
-        }
+        _ => panic!("Invalid Camera Type!")
     }
 }
