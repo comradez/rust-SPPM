@@ -5,10 +5,10 @@ use crate::materials::{build_material, Material};
 use crate::object3d::{build_group, Group};
 
 pub struct SceneParser {
-    camera: Box<dyn Camera>,
-    lights: Vec<Box<dyn Light>>,
-    materials: Vec<Rc<dyn Material>>,
-    group: Box<Group>,
+    pub camera: Box<dyn Camera>,
+    pub lights: Vec<Box<dyn Light>>,
+    pub materials: Vec<Rc<dyn Material>>,
+    pub group: Box<Group>,
 }
 pub fn build_sceneparser(scene_name: String) -> SceneParser {
     let json_raw = std::fs::read_to_string(scene_name)

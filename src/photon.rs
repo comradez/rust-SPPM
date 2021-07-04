@@ -1,9 +1,10 @@
 use core::f64;
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
+use adqselect::nth_element;
 
 use vecmat::{prelude::NormL2, vector::Vector3, traits::Dot};
 use lazy_static::lazy_static;
-use crate::{floydrivest::floydrivest, matrix::{elementwise_product, get_dist, get_max, get_min}};
+use crate::matrix::{elementwise_product, get_dist, get_max, get_min};
 #[derive(Clone, Copy)]
 pub struct Photon {
     pub pos: Vector3<f64>,
@@ -18,8 +19,9 @@ impl Photon {
     }
 }
 
-static ALPHA: f64 = 0.7;
+pub static ALPHA: f64 = 0.7;
 
+#[derive(Clone, Copy)]
 pub struct HitPoint {
     pub radius: f64,
     pub n: f64,
@@ -37,7 +39,7 @@ impl HitPoint {
     }
 }
 
-struct Node {
+pub struct Node {
     min_pos: Vector3<f64>,
     max_pos: Vector3<f64>,
     lchild: Option<Box<Node>>,
@@ -81,7 +83,7 @@ pub struct KDTree {
 }
 
 impl KDTree {
-    fn new(mut map: Vec<Photon>) -> Self {
+    pub fn new(mut map: Vec<Photon>) -> Self {
         let mut root: Option<Box<Node>> = None;
         let len = map.len();
         Self::build(&mut root, &mut map, 0, len, 0);
@@ -89,14 +91,15 @@ impl KDTree {
     }
     fn build(root: &mut Option<Box<Node>>, map: &mut Vec<Photon>, left: usize, right: usize, dep: usize) {
         if let None = root {
+            // println!("kdtree build: left is {} and right is {}", &left, &right);
             let mid = (left + right) / 2;
-            floydrivest(
-                map,
-                mid,
-                left,
-                right,
+            let relative_mid = (right - left) / 2;
+            nth_element(
+                &mut map[left..right],
+                relative_mid,
                 &mut |x, y| { (*COMPS)[dep % 3].compare(x, y) }
             );
+            // println!("partition complete: left is {} and right is {}", &left, &right);
             *root = Some(Box::new(Node::new(
                 map[mid].pos,
                 map[mid].pos,
@@ -134,9 +137,9 @@ impl KDTree {
             get_dist(p.min_pos.z(), p.max_pos.z(), hitpoint.pos.unwrap().z()) 
         )
     }
-    fn query(
+    pub fn query(
         &self, p: &Option<Box<Node>>, hitpoint: &mut HitPoint, 
-        color: &Vector3<f64>, normal: &Vector3<f64>, scale: &Vector3<f64>
+        color: &Vector3<f64>, normal: &Vector3<f64>, scale: f64
     ) {
         let hit_pos = hitpoint.pos.unwrap();
         if let Some(p) = p {
@@ -147,8 +150,7 @@ impl KDTree {
                     hitpoint.n += 1.;
                     if normal.dot(point.dir) < 0. {
                         let temp_color = elementwise_product(&color, &point.flux);
-                        let temp_color = elementwise_product(&temp_color, &scale);
-                        hitpoint.tau += temp_color / f64::consts::PI;
+                        hitpoint.tau += temp_color * scale / f64::consts::PI;
                     }
                 }
                 self.query(&p.lchild, hitpoint, color, normal, scale);
@@ -156,7 +158,7 @@ impl KDTree {
             }
         }
     }
-    pub fn search(&self, hitpoint: &mut HitPoint, color: &Vector3<f64>, normal: &Vector3<f64>, scale: &Vector3<f64>) {
+    pub fn search(&self, hitpoint: &mut HitPoint, color: &Vector3<f64>, normal: &Vector3<f64>, scale: f64) {
         self.query(&self.root, hitpoint, color, normal, scale)
     }
 }

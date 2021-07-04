@@ -1,4 +1,4 @@
-use image::{ImageBuffer, ImageResult, Rgb, RgbImage};
+use image::{Rgb, ImageResult, ImageBuffer};
 use vecmat::vector::Vector3;
 use vecmat::matrix::Matrix4x4;
 use vecmat::Vector;
@@ -126,15 +126,16 @@ pub fn trunc(color: f64) -> u8 {
 }
 
 pub fn render(pic: &Vec<Vec<HitPoint>>, output_file: &str) -> ImageResult<()> {
-    let height = pic.len() as u32;
-    let width = pic[0].len() as u32;
+    let width = pic.len() as u32;
+    let height = pic[0].len() as u32;
+    println!("width {}, height {}", width, height);
     let img = ImageBuffer::from_fn(
         width,
         height,
-        |x, y| {image::Rgb([
-            trunc(pic[x as usize][y as usize].tau.x()),
-            trunc(pic[x as usize][y as usize].tau.y()),
-            trunc(pic[x as usize][y as usize].tau.z())
+        |x, y| {Rgb([
+            trunc(pic[x as usize][(height - 1 - y) as usize].tau.x()),
+            trunc(pic[x as usize][(height - 1 - y) as usize].tau.y()),
+            trunc(pic[x as usize][(height - 1 - y) as usize].tau.z())
         ])}
     );
     img.save(output_file)?;

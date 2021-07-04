@@ -1,6 +1,7 @@
 use json::JsonValue;
 use vecmat::vector::Vector3;
 use tobj::{self, LoadOptions};
+use adqselect::nth_element;
 use std::cmp::Ordering;
 use std::rc::Rc;
 use std::usize;
@@ -11,7 +12,6 @@ use crate::materials::Material;
 use crate::matrix::elementwise_division;
 use crate::matrix::get_max;
 use crate::matrix::get_min;
-use crate::floydrivest::floydrivest;
 use crate::object3d::Object3d;
 use crate::ray::Ray;
 use crate::object3d::Triangle;
@@ -140,9 +140,10 @@ impl Mesh {
     fn build(root: &mut Option<Box<Node>>, t: &mut Vec<TriangleIndex>, left: usize, right: usize, dep: usize) {
         if let None = root {
             let mid = (left + right) / 2;
-            floydrivest(
-                t, 
-                mid, left, right, 
+            let relative_mid = (right - left) / 2;
+            nth_element(
+                &mut t[left..right],
+                relative_mid,
                 &mut |x, y| { (*COMPS)[dep % 3].compare(x, y) }
             );
             *root = Some(Box::new(Node::new(

@@ -122,6 +122,10 @@ pub fn build_light(light_attr: &JsonValue) -> Box<dyn Light> {
             let angle = light_attr["Angle"].as_f64().unwrap();
             Box::new(ConeLight::new(Some(scale), pos, normal, flux, angle))
         },
+        "HalfSphereLight" => {
+            let normal = parse_vector(&light_attr["Normal"]);
+            Box::new(ConeLight::new(Some(scale), pos, normal, flux, 90.))
+        },
         "DirectionCircleLight" => {
             let normal = parse_vector(&light_attr["Normal"]);
             let radius = light_attr["Radius"].as_f64().unwrap();

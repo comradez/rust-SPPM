@@ -67,6 +67,8 @@ impl DoFCamera {
 
 pub trait Camera {
     fn generate_ray(&self, point: &Vector::<f64, 2>) -> Ray;
+    fn get_width(&self) -> u32;
+    fn get_height(&self) -> u32;
 }
 
 impl Camera for PerspectiveCamera {
@@ -81,7 +83,13 @@ impl Camera for PerspectiveCamera {
         ]).transpose();
         let dir = rot.dot(dir);
         dir.normalize();
-        Ray::new(self.center, dir, None)
+        Ray::new(self.center, dir, Some(Vector3::<f64>::from([1., 1., 1.])))
+    }
+    fn get_width(&self) -> u32 {
+        self.width
+    }
+    fn get_height(&self) -> u32 {
+        self.height
     }
 }
 
@@ -109,7 +117,13 @@ impl Camera for DoFCamera {
         let delta = self.aperture * (normal_x * self.horizental + normal_y * self.up);
         let real_dir = temp_ray.point_at_param(hit.get_t()) - (self.center + delta);
         real_dir.normalize();
-        Ray::new(self.center + delta, real_dir, None) // 占位用的
+        Ray::new(self.center + delta, real_dir, Some(Vector3::<f64>::from([1., 1., 1.])))
+    }
+    fn get_width(&self) -> u32 {
+        self.width
+    }
+    fn get_height(&self) -> u32 {
+        self.height
     }
 }
 
