@@ -1,4 +1,6 @@
 use core::f64;
+use std::sync::{Arc, RwLock, Barrier};
+use std::{thread, u32};
 use std::{env, usize};
 mod sceneparser;
 mod camera;
@@ -14,44 +16,76 @@ use image::ImageError;
 use materials::MaterialType;
 use object3d::Group;
 use object3d::Object3d;
+// use threadpool::ThreadPool;
 use vecmat::vector::Vector2;
-use vecmat::vector::Vector3;
-use image::{Rgb, ImageResult, ImageBuffer};
-
+use image::{Rgb, ImageResult};
+use image::RgbImage;
+// use image::ImageBuffer;
 use crate::{photon::{HitPoint, KDTree, Photon}, sceneparser::build_sceneparser};
 use crate::ray::Ray;
 use crate::matrix::trunc;
-use rand::{thread_rng, Rng};
 
 static PHOTON_NUMBER: u32 = 100000;
 static ROUND_NUMBER: u32 = 3;
 static SAMPLE_NUMBER: u32 = 3;
-static _PARALLEL_NUMBER: u32 = 8;
-static _PHOTONS_PER_ROUND: u32 = PHOTON_NUMBER / _PARALLEL_NUMBER;
+static PARALLEL_NUMBER: usize = 8;
+static _PHOTONS_PER_ROUND: u32 = PHOTON_NUMBER / PARALLEL_NUMBER as u32;
 static TMIN: f64 = 0.015;
 
-fn render(pic: &Vec<Vec<HitPoint>>, output_file: &str) -> ImageResult<()> {
-    let width = pic.len() as u32;
-    let height = pic[0].len() as u32;
-    let img = ImageBuffer::from_fn(
-        width,
-        height,
-        |x, y| {
-            let point = &pic[x as usize][(height - 1 - y) as usize];
-            let area = f64::consts::PI * point.radius * point.radius;
-            let number = (PHOTON_NUMBER * ROUND_NUMBER) as f64;
-            Rgb([
-                trunc(point.tau.x() / (area * number)),
-                trunc(point.tau.y() / (area * number)),
-                trunc(point.tau.z() / (area * number)),
-            ])
+fn render(pic: &Vec<Arc<RwLock<Vec<Vec<HitPoint>>>>>, output_file: &str, width: u32, height: u32) -> ImageResult<()> {
+    let number = (PHOTON_NUMBER * ROUND_NUMBER) as f64;
+    let mut img = RgbImage::new(width, height);
+    // for x in 0 .. width {
+    //     let interval = width as usize / PARALLEL_NUMBER;
+    //     let dim_1 = x as usize / interval;
+    //     let dim_2 = x as usize % interval;
+    //     // let point_vector = &pic[dim_1].read().unwrap();
+    //     for y in 0 .. height {
+    //         let point = &pic[dim_1].read().unwrap()[dim_2][(height - 1 - y) as usize];
+    //         // let point = &point_vector[dim_2][(height - 1 - y) as usize];
+    //         let area = f64::consts::PI * point.radius * point.radius;
+    //         *img.get_pixel_mut(x, y) = Rgb([
+    //             trunc(point.tau.x() / (area * number)),
+    //             trunc(point.tau.y() / (area * number)),
+    //             trunc(point.tau.z() / (area * number)),
+    //         ]);
+    //     }
+    // }
+    for dim_1 in 0 .. PARALLEL_NUMBER {
+        for dim_2 in 0 .. width as usize / PARALLEL_NUMBER {
+            for y in 0 .. height {
+                let x = dim_1 * width as usize / PARALLEL_NUMBER + dim_2;
+                let point = &pic[dim_1].read().unwrap()[dim_2][(height - 1 - y) as usize];
+                let area = f64::consts::PI * point.radius * point.radius;
+                *img.get_pixel_mut(x as u32, y) = Rgb([
+                    trunc(point.tau.x() / (area * number)),
+                    trunc(point.tau.y() / (area * number)),
+                    trunc(point.tau.z() / (area * number)),
+                ]);
+            }
         }
-    );
+    }
+    // let img = ImageBuffer::from_fn(
+    //     width,
+    //     height,
+    //     |x, y| {
+    //         let interval = width as usize / PARALLEL_NUMBER;
+    //         let dim_1 = x as usize / interval;
+    //         let dim_2 = x as usize % interval;
+    //         let point = &pic[dim_1].read().unwrap()[dim_2][(height - 1 - y) as usize];
+    //         let area = f64::consts::PI * point.radius * point.radius;
+    //         Rgb([
+    //             trunc(point.tau.x() / (area * number)),
+    //             trunc(point.tau.y() / (area * number)),
+    //             trunc(point.tau.z() / (area * number)),
+    //         ])
+    //     }
+    // );
     img.save(output_file)?;
     Ok(())
 }
 
-fn photon_trace(group: &Box<Group>, mut ray: Ray, photon_map: &mut Vec<Photon>) {
+fn photon_trace(group: &Arc<Group>, mut ray: Ray, photon_map: &mut Vec<Photon>) {
     let mut depth = 0;
     loop {
         if depth > 100 {
@@ -84,8 +118,7 @@ fn photon_trace(group: &Box<Group>, mut ray: Ray, photon_map: &mut Vec<Photon>) 
 }
 
 fn ray_trace(
-    x: usize, y: usize, group: &Box<Group>, mut ray: Ray, kd_tree: &KDTree,
-    picture: &Vec<Vec<HitPoint>>, buffer: &mut Vec<Vec<HitPoint>>
+    group: &Arc<Group>, mut ray: Ray, kd_tree: &Arc<KDTree>, radius: f64, buffer_pixel: &mut HitPoint
 ) {
     let mut depth = 0;
     loop {
@@ -100,9 +133,9 @@ fn ray_trace(
             depth += 1;
             match material.get_type() {
                 &MaterialType::DIFFUSE => {
-                    buffer[x][y].radius = picture[x][y].radius;
-                    buffer[x][y].pos = Some(position);
-                    kd_tree.search(&mut buffer[x][y], color, hit.get_normal(), ray.get_flux());
+                    buffer_pixel.radius = radius;
+                    buffer_pixel.pos = Some(position);
+                    kd_tree.search(buffer_pixel, color, hit.get_normal(), ray.get_flux());
                     break;
                 },
                 &MaterialType::SPECULAR | &MaterialType::REFRACTION => {
@@ -127,10 +160,10 @@ fn main() -> Result<(), ImageError> {
     let group = parser.group;
     let width = camera.get_width() as usize;
     let height = camera.get_height() as usize;
-    let mut picture = vec![vec![HitPoint::new(); height]; width];
-    let mut buffer = vec![vec![HitPoint::new(); height]; width];
+    let pictures: Vec<Arc<RwLock<Vec<Vec<HitPoint>>>>> = 
+        vec![Arc::new(RwLock::new(vec![vec![HitPoint::new(); height]; width / PARALLEL_NUMBER])); PARALLEL_NUMBER];
+    let barrier = Arc::new(Barrier::new(PARALLEL_NUMBER + 1));
     
-    let mut rng = thread_rng();
     for round in 0 .. ROUND_NUMBER {
         let mut photon_map: Vec<Photon> = Vec::new();
         for light in &lights {
@@ -141,34 +174,54 @@ fn main() -> Result<(), ImageError> {
         }
         println!("Round {} photon pass complete", &round);
         let kd_tree = KDTree::new(photon_map);
+        let arc_kd_tree = Arc::new(kd_tree);
         println!("Round {} kdtree build complete", &round);
-        for x in 0 .. width {
-            for y in 0 .. height {
-                buffer[x][y].tau = Vector3::<f64>::from([0., 0., 0.]);
-                buffer[x][y].n = 0.;
-                for _ in 0 .. SAMPLE_NUMBER {
-                    let mut ray = camera.generate_ray(&Vector2::<f64>::from([
-                        x as f64 + rng.gen_range(0. .. 1.),
-                        y as f64 + rng.gen_range(0. .. 1.)
-                    ]));
-                    ray.set_color(*ray.get_flux() / (SAMPLE_NUMBER as f64));
-                    ray_trace(x, y, &group, ray, &kd_tree, &picture, &mut buffer);
-                }
-                if round == 0 {
-                    picture[x][y].n = buffer[x][y].n;
-                    picture[x][y].tau = buffer[x][y].tau;
-                } else {
-                    if picture[x][y].n + buffer[x][y].n > 0. {
-                        let ratio = (picture[x][y].n + photon::ALPHA * buffer[x][y].n) / (picture[x][y].n + buffer[x][y].n);
-                        picture[x][y].radius *= f64::sqrt(ratio);
-                        picture[x][y].tau = (picture[x][y].tau + buffer[x][y].tau) * ratio;
-                        picture[x][y].n += buffer[x][y].n * ratio;
+        for i in 0 .. PARALLEL_NUMBER as usize {
+            let group = group.clone();
+            let camera = camera.clone();
+            let arc_kd_tree = arc_kd_tree.clone();
+            let picture = pictures[i].clone();
+            let barrier = barrier.clone();
+            thread::spawn( move || {
+                let column_begin = width * i / PARALLEL_NUMBER;
+                let column_end = width * (i + 1) / PARALLEL_NUMBER;
+                println!("thread {} spawns with column range [{}, {})", &i, &column_begin, &column_end);
+                let mut buffer = vec![vec![HitPoint::new(); height]; column_end - column_begin];
+                let mut picture = picture.write().unwrap();
+                for (x, global_x) in (column_begin .. column_end).enumerate() {
+                    for y in 0 .. height {
+                        let buffer_pixel = &mut buffer[x][y];
+                        let picture_pixel = &mut picture[x][y];
+                        for _ in 0 .. SAMPLE_NUMBER {
+                            let dest_x = global_x as f64 + rand::random::<f64>();
+                            let dest_y = y as f64 + rand::random::<f64>();
+                            let mut ray = camera.generate_ray(&Vector2::<f64>::from([
+                                dest_x,
+                                dest_y
+                            ]));
+                            ray.set_color(*ray.get_flux() / (SAMPLE_NUMBER as f64));
+                            ray_trace(&group, ray, &arc_kd_tree, picture_pixel.radius, buffer_pixel);
+                        }
+                        if round == 0 {
+                            picture_pixel.n = buffer_pixel.n;
+                            picture_pixel.tau = buffer_pixel.tau;
+                        } else {
+                            if picture_pixel.n + buffer_pixel.n > 0. {
+                                let ratio = (picture_pixel.n + photon::ALPHA * buffer_pixel.n) / (picture_pixel.n + buffer_pixel.n);
+                                picture_pixel.radius = picture_pixel.radius * f64::sqrt(ratio);
+                                picture_pixel.tau = (picture_pixel.tau + buffer_pixel.tau) * ratio;
+                                picture_pixel.n = picture_pixel.n + buffer_pixel.n * ratio;
+                            }
+                        }   
                     }
                 }
-            }
+                drop(picture);
+                barrier.wait();
+            });
         }
+        barrier.wait();
         println!("Round {} complete", &round);
     }
-    render(&picture, &output_file)?;
+    render(&pictures, &output_file, width as u32, height as u32)?;
     Ok(())
 }

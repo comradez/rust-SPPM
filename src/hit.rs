@@ -1,27 +1,27 @@
 use crate::materials::Material;
 use vecmat::vector::Vector3;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct Hit {
     t: f64,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material>,
     normal: Vector3::<f64>
 }
 
 impl Hit {
-    pub fn new(t: f64, material: Rc<dyn Material>, normal: Vector3::<f64>) -> Self { 
+    pub fn new(t: f64, material: Arc<dyn Material>, normal: Vector3::<f64>) -> Self { 
         Self { t, material, normal } 
     }
 
     pub fn clone_obj(&self) -> Self {
-        Self { t: self.t, material: Rc::clone(&self.material), normal: self.normal }
+        Self { t: self.t, material: Arc::clone(&self.material), normal: self.normal }
     }
 
     pub fn get_t(&self) -> f64 {
         self.t
     }
 
-    pub fn get_material(&self) -> &Rc<dyn Material> {
+    pub fn get_material(&self) -> &Arc<dyn Material> {
         &self.material
     }
 

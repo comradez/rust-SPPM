@@ -3,7 +3,7 @@ use vecmat::vector::Vector3;
 use tobj::{self, LoadOptions};
 use adqselect::nth_element;
 use std::cmp::Ordering;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::usize;
 use lazy_static::lazy_static;
 
@@ -76,13 +76,13 @@ pub struct Mesh {
     t: Vec<TriangleIndex>,
     vn: Option<Vec<Vector3<f64>>>,
     // mesh: objMesh,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material + Send + Sync>,
     // n的计算*有点问题*，我在三角形的实现里是现场算的，这里先不放了
     // 因为我前面也没做好写Texture的准备，所以这里vt也摸了
 }
 
 impl Mesh {
-    fn new(file_name: &str, material: Rc<dyn Material>) -> Self {
+    fn new(file_name: &str, material: Arc<dyn Material + Send + Sync>) -> Self {
         let (models, _) = tobj::load_obj(
             file_name,
             &LoadOptions {
@@ -192,7 +192,7 @@ impl Mesh {
             } else {
                 let ti = &self.t[real_p.triangle_index];
                 let triangle = Triangle::new(
-                    Rc::clone(&self.material),
+                    self.material.clone(),
                     [self.v[ti.vertices[0]], self.v[ti.vertices[1]], self.v[ti.vertices[2]]],
                     if let Some(real_vn) = &self.vn {
                         Some([real_vn[ti.vertices[0]], real_vn[ti.vertices[1]], real_vn[ti.vertices[2]]])
@@ -233,8 +233,8 @@ impl Object3d for Mesh {
     }
 }
 
-pub fn build_mesh(mesh_attr: &JsonValue, materials: &Vec<Rc<dyn Material>>) -> Box<Mesh> {
+pub fn build_mesh(mesh_attr: &JsonValue, materials: &Vec<Arc<dyn Material + Send + Sync>>) -> Arc<Mesh> {
     let material_index = mesh_attr["MaterialIndex"].as_usize().unwrap();
     let file_name = mesh_attr["File"].as_str().unwrap();
-    Box::new(Mesh::new(file_name, materials[material_index].clone_box()))
+    Arc::new(Mesh::new(file_name, materials[material_index].clone()))
 }

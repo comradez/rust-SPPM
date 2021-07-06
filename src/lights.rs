@@ -1,5 +1,5 @@
 use core::f64;
-
+use std::sync::Arc;
 use vecmat::vector::Vector3;
 use json::JsonValue;
 use crate::ray::Ray;
@@ -108,26 +108,26 @@ impl Light for DirectionCircleLight {
     }
 }
 
-pub fn build_light(light_attr: &JsonValue) -> Box<dyn Light> {
+pub fn build_light(light_attr: &JsonValue) -> Arc<dyn Light + Send + Sync> {
     let light_type = light_attr["Type"].as_str().unwrap();
     let scale = light_attr["Scale"].as_f64().unwrap();
     let pos = parse_vector(&light_attr["Position"]);
     let flux = parse_vector(&light_attr["Flux"]);
     match light_type {
-        "SphereLiht" => Box::new(SphereLight::new(Some(scale), pos, flux)),
+        "SphereLiht" => Arc::new(SphereLight::new(Some(scale), pos, flux)),
         "ConeLight" => {
             let normal = parse_vector(&light_attr["Normal"]);
             let angle = light_attr["Angle"].as_f64().unwrap();
-            Box::new(ConeLight::new(Some(scale), pos, normal, flux, angle))
+            Arc::new(ConeLight::new(Some(scale), pos, normal, flux, angle))
         },
         "HalfSphereLight" => {
             let normal = parse_vector(&light_attr["Normal"]);
-            Box::new(ConeLight::new(Some(scale), pos, normal, flux, 90.))
+            Arc::new(ConeLight::new(Some(scale), pos, normal, flux, 90.))
         },
         "DirectionCircleLight" => {
             let normal = parse_vector(&light_attr["Normal"]);
             let radius = light_attr["Radius"].as_f64().unwrap();
-            Box::new(DirectionCircleLight::new(Some(scale), pos, normal, flux, radius))
+            Arc::new(DirectionCircleLight::new(Some(scale), pos, normal, flux, radius))
         },
         _ => {
             panic!("Wrong light type!");

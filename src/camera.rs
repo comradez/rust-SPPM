@@ -1,5 +1,5 @@
 use core::f64;
-use std::rc::Rc;
+use std::sync::Arc;
 use json::JsonValue;
 use vecmat::matrix::Matrix3x3;
 use vecmat::{Matrix, Vector, traits::Dot, vector::Vector3};
@@ -107,7 +107,7 @@ impl Camera for DoFCamera {
         ]).transpose();
         let dir = rot.dot(dir).normalize();
         let temp_ray = Ray::new(self.center, dir, None);
-        let temp_material = Rc::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
+        let temp_material = Arc::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
         let focus_plane = Plane::new(temp_material, self.direction, self.focus_dist);
         let hit = focus_plane.intersect(&temp_ray, 0.015).unwrap(); //这里保证有交
         let delta: Vector3<f64> = self.aperture * (normal_x * self.horizental + normal_y * self.up);
@@ -123,7 +123,7 @@ impl Camera for DoFCamera {
     }
 }
 
-pub fn build_camera(camera_attr: &JsonValue) -> Box<dyn Camera> {
+pub fn build_camera(camera_attr: &JsonValue) -> Arc<dyn Camera + Send + Sync> {
     let cam_type = camera_attr["Type"].as_str().unwrap();
     let center = parse_vector(&camera_attr["Center"]);
     let direction = parse_vector(&camera_attr["Direction"]);
@@ -132,11 +132,11 @@ pub fn build_camera(camera_attr: &JsonValue) -> Box<dyn Camera> {
     let width = camera_attr["Width"].as_u32().unwrap();
     let height = camera_attr["Height"].as_u32().unwrap();
     match cam_type {
-        "Perspective" => Box::new(PerspectiveCamera::new(center, direction, up, angle, width, height)),
+        "Perspective" => Arc::new(PerspectiveCamera::new(center, direction, up, angle, width, height)),
         "DoF" => {
             let focus = parse_vector(&camera_attr["Focus"]);
             let aperture = camera_attr["Aperture"].as_f64().unwrap();
-            Box::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
+            Arc::new(DoFCamera::new(center, direction, up, angle, width, height, focus, aperture))
         },
         _ => panic!("Invalid Camera Type!")
     }

@@ -1,5 +1,5 @@
 use core::f64;
-use std::rc::Rc;
+use std::sync::Arc;
 use json::JsonValue;
 use vecmat::{vector::Vector3, traits::Dot};
 use crate::ray::Ray;
@@ -10,7 +10,7 @@ pub trait Material {
     fn bsdf(&self, ray: &mut Ray, norm: &Vector3::<f64>, pos: &Vector3::<f64>, russian_roulette: bool) -> bool;
     fn get_type(&self) -> &MaterialType;
     fn get_color(&self) -> &Vector3<f64>;
-    fn clone_box(&self) -> Rc<dyn Material>;
+    fn clone_box(&self) -> Arc<dyn Material>;
 }
 
 #[derive(Clone, Copy)]
@@ -63,8 +63,8 @@ impl Material for DiffuseMaterial {
     fn get_color(&self) -> &Vector3<f64> {
         &self.color
     }
-    fn clone_box(&self) -> Rc<dyn Material> {
-        Rc::new(*self)
+    fn clone_box(&self) -> Arc<dyn Material> {
+        Arc::new(*self)
     }
 }
 
@@ -109,8 +109,8 @@ impl Material for SpecularMaterial {
     fn get_color(&self) -> &Vector3<f64> {
         &self.color
     }
-    fn clone_box(&self) -> Rc<dyn Material> {
-        Rc::new(self.clone())
+    fn clone_box(&self) -> Arc<dyn Material> {
+        Arc::new(self.clone())
     }
 }
 
@@ -173,18 +173,18 @@ impl Material for RefractionMaterial {
     fn get_color(&self) -> &Vector3<f64> {
         &self.color
     }
-    fn clone_box(&self) -> Rc<dyn Material> {
-        Rc::new(*self)
+    fn clone_box(&self) -> Arc<dyn Material> {
+        Arc::new(*self)
     }
 }
 
-pub fn build_material(material_attr: &JsonValue) -> Rc<dyn Material> {
+pub fn build_material(material_attr: &JsonValue) -> Arc<dyn Material + Send + Sync> {
     let material_type = material_attr["Type"].as_str().unwrap();
     let color = parse_vector(&material_attr["Color"]);
     match material_type {
-        "DIFF" => Rc::new(DiffuseMaterial::new(color)),
-        "SPEC" => Rc::new(SpecularMaterial::new(color)),
-        "REFR" => Rc::new(RefractionMaterial::new(color, None)),
+        "DIFF" => Arc::new(DiffuseMaterial::new(color)),
+        "SPEC" => Arc::new(SpecularMaterial::new(color)),
+        "REFR" => Arc::new(RefractionMaterial::new(color, None)),
         _ => panic!("Wrong material type!")
     }
 }

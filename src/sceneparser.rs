@@ -1,14 +1,14 @@
-use std::rc::Rc;
+use std::sync::Arc;
 use crate::camera::{build_camera, Camera};
 use crate::lights::{build_light, Light};
 use crate::materials::{build_material, Material};
 use crate::object3d::{build_group, Group};
 
 pub struct SceneParser {
-    pub camera: Box<dyn Camera>,
-    pub lights: Vec<Box<dyn Light>>,
-    pub materials: Vec<Rc<dyn Material>>,
-    pub group: Box<Group>,
+    pub camera: Arc<dyn Camera + Send + Sync>,
+    pub lights: Vec<Arc<dyn Light + Send + Sync>>,
+    pub materials: Vec<Arc<dyn Material + Send + Sync>>,
+    pub group: Arc<Group>,
 }
 pub fn build_sceneparser(scene_name: String) -> SceneParser {
     let json_raw = std::fs::read_to_string(scene_name)
@@ -24,15 +24,15 @@ pub fn build_sceneparser(scene_name: String) -> SceneParser {
     assert!(materials.is_array());
     assert!(group.is_array());
     let camera = build_camera(&camera);
-    let lights: Vec<Box<dyn Light>> = lights
+    let lights: Vec<Arc<dyn Light + Send + Sync>> = lights
         .members()
         .map(|x| build_light(x))
         .collect();
-    let materials: Vec<Rc<dyn Material>> = materials
+    let materials: Vec<Arc<dyn Material + Send + Sync>> = materials
         .members()
         .map(|x| build_material(x))
         .collect();
-    let group: Box<Group> = build_group(&group, &materials);
+    let group: Arc<Group> = build_group(&group, &materials);
     SceneParser {
         camera, lights, materials, group
     }
