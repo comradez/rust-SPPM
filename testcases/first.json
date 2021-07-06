@@ -1,0 +1,45 @@
+{
+    "Camera": {
+        "Type": "Perspective",
+        "Center": [-10, 20, 100],
+        "Direction": [0, -0.1, -1],
+        "Up": [0, 1, 0],
+        "Angle": 45,
+        "Width": 800,
+        "Height": 600
+    },
+    "Lights": [
+        {
+            "Type": "DirectionCircleLight",
+            "Position": [100, 100, -100],
+            "Normal": [-1, -1, 1],
+            "Flux": [1, 1, 1],
+            "Radius": 30,
+            "Scale": 20000
+        }
+    ],
+    "Materials": [
+        {
+            "Type": "DIFF",
+            "Color": [0.75, 0.25, 0.25]
+        },
+        {
+            "Type": "DIFF",
+            "Color": [0.3, 0.3, 0.4]
+        }
+    ],
+    "Group": [
+        {
+            "Type": "Plane",
+            "MaterialIndex": 1,
+            "Normal": [0, 1, 0],
+            "Offset": 0
+        },
+        {
+            "Type": "Sphere",
+            "MaterialIndex": 0,
+            "Center": [-15, 5, 32],
+            "Radius": 5
+        }
+    ]
+}
