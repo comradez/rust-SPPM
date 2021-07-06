@@ -1,20 +1,20 @@
 use adqselect::nth_element;
+use crate::{
+    hit::Hit,
+    materials::Material,
+    object3d::{Object3d, Triangle},
+    ray::Ray,
+    utils::{elementwise_division, get_max, get_min, prior_hit},
+};
 use json::JsonValue;
 use lazy_static::lazy_static;
-use std::cmp::Ordering;
-use std::sync::Arc;
-use std::usize;
+use std::{
+    cmp::Ordering,
+    sync::Arc,
+    usize
+};
 use tobj::{self, LoadOptions};
 use vecmat::vector::Vector3;
-
-use crate::hit::Hit;
-use crate::materials::Material;
-use crate::matrix::elementwise_division;
-use crate::matrix::get_max;
-use crate::matrix::get_min;
-use crate::object3d::Object3d;
-use crate::object3d::Triangle;
-use crate::ray::Ray;
 struct Node {
     min_pos: Vector3<f64>,
     max_pos: Vector3<f64>,
@@ -205,13 +205,13 @@ impl Mesh {
         }
     }
     fn query(&self, p: &Option<Box<Node>>, ray: &Ray, tmin: f64) -> Option<Hit> {
-        if let Some(real_p) = p {
+        if let Some(p) = p {
             let d = ray.get_direction();
             let o = ray.get_origin();
             let mut t_min = tmin;
             let mut t_max = 1e38;
-            let min_pos_t = elementwise_division(&(real_p.min_pos - *o), &d);
-            let max_pos_t = elementwise_division(&(real_p.max_pos - *o), &d);
+            let min_pos_t = elementwise_division(&(p.min_pos - *o), &d);
+            let max_pos_t = elementwise_division(&(p.max_pos - *o), &d);
             for i in 0..3_usize {
                 if d[i] != 0. {
                     t_min = f64::max(t_min, f64::min(min_pos_t[i], max_pos_t[i]));
@@ -221,7 +221,7 @@ impl Mesh {
             if t_min > t_max {
                 None
             } else {
-                let ti = &self.t[real_p.triangle_index];
+                let ti = &self.t[p.triangle_index];
                 let triangle = Triangle::new(
                     self.material.clone(),
                     [
@@ -233,36 +233,10 @@ impl Mesh {
                         .as_ref()
                         .map(|vn| [vn[ti.vertices[0]], vn[ti.vertices[1]], vn[ti.vertices[2]]]),
                 );
-                let mut ret = triangle.intersect(ray, tmin);
-                let hit = self.query(&real_p.lchild, ray, tmin);
-                if let Some(real_hit) = &hit {
-                    //hit不为None
-                    if let Some(real_ret) = &ret {
-                        //ret不为None
-                        if real_hit.get_t() < real_ret.get_t() {
-                            //hit的getT比ret的更小
-                            ret = hit;
-                        }
-                    } else {
-                        //ret是None
-                        ret = hit;
-                    }
-                }
-                let hit = self.query(&real_p.rchild, ray, tmin);
-                if let Some(real_hit) = &hit {
-                    //hit不为None
-                    if let Some(real_ret) = &ret {
-                        //ret不为None
-                        if real_hit.get_t() < real_ret.get_t() {
-                            //hit的getT比ret的更小
-                            ret = hit;
-                        }
-                    } else {
-                        //ret是None
-                        ret = hit;
-                    }
-                }
-                ret.map(|ret| ret.clone_obj())
+                let ret = triangle.intersect(ray, tmin);
+                let ret = prior_hit(ret, self.query(&p.lchild, ray, tmin));
+                let ret = prior_hit(ret, self.query(&p.rchild, ray, tmin));
+                ret
             }
         } else {
             None

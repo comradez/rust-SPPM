@@ -1,11 +1,10 @@
+use crate::hit::Hit;
 use core::f64;
 use json::JsonValue;
 use std::ops::Div;
-use std::{u8, usize};
 use vecmat::matrix::Matrix4x4;
 use vecmat::vector::Vector3;
 use vecmat::Vector;
-// use std::iter::zip;
 pub fn gen_translation(translation: &Vector3<f64>) -> Matrix4x4<f64> {
     Matrix4x4::from_array_of_arrays([
         [1., 0., 0., translation[0]],
@@ -101,14 +100,12 @@ pub fn get_dist(l: f64, r: f64, v: f64) -> f64 {
 }
 
 pub fn gen_vert(vec: &Vector3<f64>) -> Vector3<f64> {
-    let temp: Vector3<f64>;
-    if vec.x() > 0.2 {
-        temp = Vector3::<f64>::from([0., 1., 0.]);
+    let temp = if vec.x() > 0.2 {
+        Vector3::<f64>::from([0., 1., 0.])
     } else {
-        temp = Vector3::<f64>::from([1., 0., 0.]);
-    }
-    let vec: Vector3<f64> = vec.cross(temp).normalize();
-    vec
+        Vector3::<f64>::from([1., 0., 0.])
+    };
+    vec.cross(temp).normalize()
 }
 pub fn parse_vector(raw: &JsonValue) -> Vector3<f64> {
     Vector3::<f64>::from([
@@ -119,8 +116,21 @@ pub fn parse_vector(raw: &JsonValue) -> Vector3<f64> {
 }
 
 pub fn trunc(color: f64) -> u8 {
-    // if color > 1. {
-    //     println!("color is {}, more than 1!", color);
-    // }
     (color * 255.) as u8
+}
+
+pub fn prior_hit(a: Option<Hit>, b: Option<Hit>) -> Option<Hit> {
+    if let Some(real_b) = &b {
+        if let Some(real_a) = &a {
+            if real_a.get_t() < real_b.get_t() {
+                a
+            } else {
+                b
+            }
+        } else {
+            b
+        }
+    } else {
+        a
+    }
 }

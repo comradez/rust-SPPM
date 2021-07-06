@@ -1,12 +1,19 @@
-use crate::matrix::{gen_rotate, gen_translation};
-use crate::mesh::build_mesh;
-use crate::{hit::Hit, materials::Material, matrix::parse_vector, ray::Ray};
+use crate::{
+    mesh::build_mesh,
+    utils::{gen_rotate, gen_translation},
+    hit::Hit,
+    materials::Material,
+    ray::Ray,
+    utils::parse_vector
+};
 use core::f64;
 use json::JsonValue;
 use std::sync::Arc;
-use vecmat::matrix::{Matrix3x3, Matrix4x4};
-use vecmat::traits::Dot;
-use vecmat::vector::{Vector3, Vector4};
+use vecmat::{
+    matrix::{Matrix3x3, Matrix4x4},
+    traits::Dot,
+    vector::{Vector3, Vector4}
+};
 pub trait Object3d {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit>;
 }
@@ -177,12 +184,16 @@ impl Object3d for Triangle {
                 let w1 = self.face_normal.dot(w1);
                 let w2 = self.face_normal.dot(w2);
                 //重心坐标插值
-                let norm = if let Some(normals) = self.normals {
+                let mut norm = if let Some(normals) = self.normals {
                     normals[0] * w0 + normals[1] * w1 + normals[2] * w2
                 } else {
                     self.face_normal
                 }
                 .normalize();
+                if norm.dot(*ray.get_direction()) > 0. {
+                    norm = -norm;
+                }
+                assert!(norm.dot(*ray.get_direction()) <= 0.);
                 Some(Hit::new(t, self.material.clone(), norm))
             } else {
                 None
@@ -292,8 +303,9 @@ pub fn build_transform(
     materials: &[Arc<dyn Material + Send + Sync>],
 ) -> Arc<Transform> {
     let mut matrix: Matrix4x4<f64> = Matrix4x4::diagonal(Vector4::<f64>::from([1., 1., 1., 1.]));
-    let object: Arc<dyn Object3d + Send + Sync> = build_object3d(transform_attr, materials);
-    for process in transform_attr.members() {
+    let object: Arc<dyn Object3d + Send + Sync> =
+        build_object3d(&transform_attr["Object"], materials);
+    for process in transform_attr["Details"].members() {
         let process_type = process["Type"].as_str().unwrap();
         match process_type {
             "Scale" => {

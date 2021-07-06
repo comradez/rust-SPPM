@@ -2,11 +2,16 @@ use core::f64;
 use json::JsonValue;
 use rand::{thread_rng, Rng};
 use std::sync::Arc;
-use vecmat::matrix::Matrix3x3;
-use vecmat::{traits::Dot, vector::Vector3, Matrix, Vector};
+use vecmat::{
+    matrix::Matrix3x3,
+    traits::Dot,
+    vector::Vector3,
+    Matrix,
+    Vector
+};
 
-use crate::matrix::parse_vector;
 use crate::object3d::{Object3d, Plane};
+use crate::utils::parse_vector;
 use crate::{materials::DiffuseMaterial, ray::Ray};
 
 pub struct PerspectiveCamera {

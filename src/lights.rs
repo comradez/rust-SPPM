@@ -1,5 +1,7 @@
-use crate::matrix::{gen_vert, parse_vector};
-use crate::ray::Ray;
+use crate::{
+    ray::Ray,
+    utils::{gen_vert, parse_vector}
+};
 use core::f64;
 use json::JsonValue;
 use rand::{thread_rng, Rng};

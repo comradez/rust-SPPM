@@ -1,34 +1,34 @@
 #![allow(clippy::too_many_arguments)]
+mod camera;
+mod hit;
+mod lights;
+mod materials;
+mod mesh;
+mod object3d;
+mod photon;
+mod ray;
+mod sceneparser;
+mod utils;
 use core::f64;
 use std::{
     env,
     sync::{Arc, Barrier, Mutex},
     thread, u32, usize,
 };
-mod camera;
-mod hit;
-mod lights;
-mod materials;
-mod matrix;
-mod mesh;
-mod object3d;
-mod photon;
-mod ray;
-mod sceneparser;
 use crate::{
     materials::MaterialType,
-    matrix::trunc,
     object3d::{Group, Object3d},
     photon::{HitPoint, KDTree, Photon},
     ray::Ray,
     sceneparser::build_sceneparser,
+    utils::trunc,
 };
 use image::{ImageBuffer, ImageError, ImageResult, Rgb};
 use vecmat::vector::Vector2;
 
-const PHOTON_NUMBER: u32 = 1000000;
+const PHOTON_NUMBER: u32 = 100000;
 const ROUND_NUMBER: u32 = 3;
-const SAMPLE_NUMBER: u32 = 8;
+const SAMPLE_NUMBER: u32 = 4;
 const PARALLEL_NUMBER: usize = 8;
 const _PHOTONS_PER_ROUND: u32 = PHOTON_NUMBER / PARALLEL_NUMBER as u32;
 const TMIN: f64 = 0.015;

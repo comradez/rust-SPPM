@@ -1,8 +1,7 @@
 use adqselect::nth_element;
 use core::f64;
 use std::cmp::Ordering;
-
-use crate::matrix::{get_dist, get_max, get_min};
+use crate::utils::{get_dist, get_max, get_min};
 use lazy_static::lazy_static;
 use vecmat::{traits::Dot, vector::Vector3};
 #[derive(Clone, Copy)]

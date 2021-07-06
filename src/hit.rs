@@ -2,6 +2,7 @@ use crate::materials::Material;
 use std::sync::Arc;
 use vecmat::vector::Vector3;
 
+#[derive(Clone)]
 pub struct Hit {
     t: f64,
     material: Arc<dyn Material>,
@@ -14,14 +15,6 @@ impl Hit {
             t,
             material,
             normal,
-        }
-    }
-
-    pub fn clone_obj(&self) -> Self {
-        Self {
-            t: self.t,
-            material: Arc::clone(&self.material),
-            normal: self.normal,
         }
     }
 

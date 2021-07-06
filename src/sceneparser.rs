@@ -1,7 +1,9 @@
-use crate::camera::{build_camera, Camera};
-use crate::lights::{build_light, Light};
-use crate::materials::{build_material, Material};
-use crate::object3d::{build_group, Group};
+use crate::{
+    camera::{build_camera, Camera},
+    lights::{build_light, Light},
+    materials::{build_material, Material},
+    object3d::{build_group, Group}
+};
 use std::sync::Arc;
 
 pub struct SceneParser {
