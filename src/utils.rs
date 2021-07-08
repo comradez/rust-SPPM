@@ -41,7 +41,7 @@ pub fn gen_rotate(degree: f64, dim: usize) -> Matrix4x4<f64> {
             [0., 0., 1., 0.],
             [0., 0., 0., 1.],
         ]),
-        _ => panic!("Wrong dimention"),
+        _ => panic!("Wrong dimension"),
     }
 }
 

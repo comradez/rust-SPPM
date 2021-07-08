@@ -26,9 +26,9 @@ use crate::{
 use image::{ImageBuffer, ImageError, ImageResult, Rgb};
 use vecmat::vector::Vector2;
 
-const PHOTON_NUMBER: u32 = 100000;
-const ROUND_NUMBER: u32 = 3;
-const SAMPLE_NUMBER: u32 = 4;
+const PHOTON_NUMBER: u32 = 1000000;
+const ROUND_NUMBER: u32 = 5;
+const SAMPLE_NUMBER: u32 = 8;
 const PARALLEL_NUMBER: usize = 8;
 const _PHOTONS_PER_ROUND: u32 = PHOTON_NUMBER / PARALLEL_NUMBER as u32;
 const TMIN: f64 = 0.015;
@@ -90,7 +90,7 @@ fn ray_trace(
     mut ray: Ray,
     kd_tree: &Arc<KDTree>,
     radius: f64,
-    buffer_pixel: &mut HitPoint,
+    buffer_pixel: &mut HitPoint
 ) {
     let mut depth = 0;
     loop {
@@ -104,13 +104,13 @@ fn ray_trace(
             let position = ray.point_at_param(hit.get_t());
             depth += 1;
             match material.get_type() {
-                &MaterialType::DIFFUSE => {
+                MaterialType::DIFFUSE => {
                     buffer_pixel.radius = radius;
                     buffer_pixel.pos = Some(position);
                     kd_tree.search(buffer_pixel, color, hit.get_normal(), ray.get_flux());
                     break;
                 }
-                &MaterialType::SPECULAR | &MaterialType::REFRACTION => {
+                MaterialType::SPECULAR | MaterialType::REFRACTION => {
                     if !material.bsdf(&mut ray, hit.get_normal(), &position, depth >= 20) {
                         break;
                     }
@@ -163,10 +163,10 @@ fn main() -> Result<(), ImageError> {
             thread::spawn(move || {
                 let column_begin = width * i / PARALLEL_NUMBER;
                 let column_end = width * (i + 1) / PARALLEL_NUMBER;
-                println!(
-                    "thread {} spawns with column range [{}, {})",
-                    &i, &column_begin, &column_end
-                );
+                // println!(
+                //     "thread {} spawns with column range [{}, {})",
+                //     &i, &column_begin, &column_end
+                // );
                 let mut buffer = vec![vec![HitPoint::new(); height]; column_end - column_begin];
                 let mut picture = picture.lock().unwrap();
                 for (x, global_x) in (column_begin..column_end).enumerate() {
@@ -184,7 +184,7 @@ fn main() -> Result<(), ImageError> {
                                 ray,
                                 &arc_kd_tree,
                                 picture_pixel.radius,
-                                buffer_pixel,
+                                buffer_pixel
                             );
                         }
                         if round == 0 {
@@ -200,10 +200,10 @@ fn main() -> Result<(), ImageError> {
                     }
                 }
                 drop(picture);
-                println!(
-                    "thread {} ends with column range [{}, {})",
-                    &i, &column_begin, &column_end
-                );
+                // println!(
+                //     "thread {} ends with column range [{}, {})",
+                //     &i, &column_begin, &column_end
+                // );
                 barrier.wait();
             });
         }

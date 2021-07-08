@@ -184,38 +184,33 @@ impl Mesh {
                 None,
                 mid,
             )));
+            let root = root.as_mut().unwrap();
             if left < mid {
-                if let Some(root) = root {
-                    Self::build(&mut root.lchild, t, left, mid, dep + 1);
-                    if let Some(lchild) = &root.lchild {
-                        root.min_pos = get_min(&root.min_pos, &lchild.min_pos);
-                        root.max_pos = get_max(&root.max_pos, &lchild.max_pos);
-                    }
-                }
+                Self::build(&mut root.lchild, t, left, mid, dep + 1);
+                let lchild = root.lchild.as_ref().unwrap();
+                root.min_pos = get_min(&root.min_pos, &lchild.min_pos);
+                root.max_pos = get_max(&root.max_pos, &lchild.max_pos);
             }
             if mid + 1 < right {
-                if let Some(root) = root {
-                    Self::build(&mut root.rchild, t, mid + 1, right, dep + 1);
-                    if let Some(rchild) = &root.rchild {
-                        root.min_pos = get_min(&root.min_pos, &rchild.min_pos);
-                        root.max_pos = get_max(&root.max_pos, &rchild.max_pos);
-                    }
-                }
+                Self::build(&mut root.rchild, t, mid + 1, right, dep + 1);
+                let rchild = root.rchild.as_ref().unwrap();
+                root.min_pos = get_min(&root.min_pos, &rchild.min_pos);
+                root.max_pos = get_max(&root.max_pos, &rchild.max_pos);
             }
         }
     }
-    fn query(&self, p: &Option<Box<Node>>, ray: &Ray, tmin: f64) -> Option<Hit> {
+    fn query(&self, p: &Option<Box<Node>>, ray: &Ray, tmin: f64, tmax: f64) -> Option<Hit> {
         if let Some(p) = p {
             let d = ray.get_direction();
             let o = ray.get_origin();
             let mut t_min = tmin;
-            let mut t_max = 1e38;
-            let min_pos_t = elementwise_division(&(p.min_pos - *o), &d);
-            let max_pos_t = elementwise_division(&(p.max_pos - *o), &d);
+            let mut t_max = tmax;
+            let min_pos_t = elementwise_division(&(p.min_pos - *o), d);
+            let max_pos_t = elementwise_division(&(p.max_pos - *o), d);
             for i in 0..3_usize {
                 if d[i] != 0. {
-                    t_min = f64::max(t_min, f64::min(min_pos_t[i], max_pos_t[i]));
-                    t_max = f64::min(t_max, f64::max(min_pos_t[i], max_pos_t[i]));
+                    t_min = t_min.max(min_pos_t[i].min(max_pos_t[i]));
+                    t_max = t_max.min(min_pos_t[i].max(max_pos_t[i]));
                 }
             }
             if t_min > t_max {
@@ -233,10 +228,10 @@ impl Mesh {
                         .as_ref()
                         .map(|vn| [vn[ti.vertices[0]], vn[ti.vertices[1]], vn[ti.vertices[2]]]),
                 );
-                let ret = triangle.intersect(ray, tmin);
-                let ret = prior_hit(ret, self.query(&p.lchild, ray, tmin));
-                let ret = prior_hit(ret, self.query(&p.rchild, ray, tmin));
-                ret
+                let ret = None;
+                let ret = prior_hit(ret, self.query(&p.lchild, ray, tmin, tmax));
+                let ret = prior_hit(ret, self.query(&p.rchild, ray, tmin, tmax));
+                prior_hit(ret, triangle.intersect(ray, tmin))
             }
         } else {
             None
@@ -246,7 +241,7 @@ impl Mesh {
 
 impl Object3d for Mesh {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit> {
-        self.query(&self.root, ray, tmin)
+        self.query(&self.root, ray, tmin, 1e38_f64)
     }
 }
 

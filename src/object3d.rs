@@ -1,16 +1,11 @@
-use crate::{
-    mesh::build_mesh,
-    utils::{gen_rotate, gen_translation},
-    hit::Hit,
-    materials::Material,
-    ray::Ray,
-    utils::parse_vector
-};
+use crate::{hit::Hit, materials::Material, mesh::build_mesh, ray::Ray, utils::{gen_rotate, gen_translation}, utils::{parse_vector, prior_hit}};
 use core::f64;
 use json::JsonValue;
 use std::sync::Arc;
 use vecmat::{
     matrix::{Matrix3x3, Matrix4x4},
+    Matrix,
+    prelude::One,
     traits::Dot,
     vector::{Vector3, Vector4}
 };
@@ -33,21 +28,8 @@ impl Group {
 impl Object3d for Group {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit> {
         let mut ret: Option<Hit> = None;
-        for object in &self.group[..] {
-            let hit = object.intersect(ray, tmin);
-            if let Some(real_hit) = &hit {
-                //hit不为None
-                if let Some(real_ret) = &ret {
-                    //ret不为None
-                    if real_hit.get_t() < real_ret.get_t() {
-                        //hit的getT比ret的更小
-                        ret = hit;
-                    }
-                } else {
-                    //ret是None
-                    ret = hit;
-                }
-            }
+        for object in &self.group {
+            ret = prior_hit(ret, object.intersect(ray, tmin));
         }
         ret
     }
@@ -209,29 +191,38 @@ pub struct Transform {
 
 impl Transform {
     pub fn new(object: Arc<dyn Object3d + Send + Sync>, transform: Matrix4x4<f64>) -> Self {
+        let transform = transform.inv();
         Self {
             object,
-            transform: transform.inv(),
+            transform
         }
     }
 }
 
 fn transform_point(mat: &Matrix4x4<f64>, point: &Vector3<f64>) -> Vector3<f64> {
     let point = mat.dot(Vector4::<f64>::from([point.x(), point.y(), point.z(), 1.]));
-    Vector3::<f64>::from([point[0], point[1], point[2]])
+    Vector3::<f64>::from([point.x(), point.y(), point.z()])
 }
 
 fn transform_direction(mat: &Matrix4x4<f64>, dir: &Vector3<f64>) -> Vector3<f64> {
     let dir = mat.dot(Vector4::<f64>::from([dir.x(), dir.y(), dir.z(), 0.]));
-    Vector3::<f64>::from([dir[0], dir[1], dir[2]])
+    Vector3::<f64>::from([dir.x(), dir.y(), dir.z()])
 }
 
 impl Object3d for Transform {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit> {
         let tr_source = transform_point(&self.transform, ray.get_origin());
         let tr_direction = transform_direction(&self.transform, ray.get_direction());
-        let ray = Ray::new(tr_source, tr_direction, Some(*ray.get_flux()));
-        self.object.intersect(&ray, tmin)
+        let tr_ray = Ray::new(tr_source, tr_direction, Some(*ray.get_flux()));
+        let ret = self.object.intersect(&tr_ray, tmin);
+        ret.map(|h| -> Hit {
+            let normal = transform_direction(&self.transform.transpose(), h.get_normal()).normalize();
+            Hit::new(
+                h.get_t(),
+                h.get_material().clone(),
+                normal
+            )
+        })
     }
 }
 
@@ -302,7 +293,7 @@ pub fn build_transform(
     transform_attr: &JsonValue,
     materials: &[Arc<dyn Material + Send + Sync>],
 ) -> Arc<Transform> {
-    let mut matrix: Matrix4x4<f64> = Matrix4x4::diagonal(Vector4::<f64>::from([1., 1., 1., 1.]));
+    let mut matrix: Matrix4x4<f64> = Matrix::<f64, 4, 4>::one();
     let object: Arc<dyn Object3d + Send + Sync> =
         build_object3d(&transform_attr["Object"], materials);
     for process in transform_attr["Details"].members() {

@@ -5,8 +5,8 @@
         "Direction": [0, -0.1, -1],
         "Up": [0, 1, 0],
         "Angle": 45,
-        "Width": 800,
-        "Height": 600
+        "Width": 1600,
+        "Height": 1200
     },
     "Lights": [
         {
@@ -36,7 +36,7 @@
         },
         {
             "Type": "DIFF",
-            "Color": [0.25, 0.85, 0.25]
+            "Color": [0.25, 0.25, 0.75]
         },
         {
             "Type": "SPEC",
@@ -67,15 +67,6 @@
             "Radius": 9
         },
         {
-            "Type": "Triangle",
-            "MaterialIndex": 0,
-            "Vertices": [
-                [0, 5, 8],
-                [5, 10, 8],
-                [10, 5, 8]
-            ]
-        },
-        {
             "Type": "Transform",
             "Details": [
                 {
@@ -100,6 +91,32 @@
                 "MaterialIndex": 2,
                 "File": "mesh/dodecahedron.obj"
             }   
+        },
+        {
+            "Type": "Transform",
+            "Details": [
+                {
+                    "Type": "Translate",
+                    "Translation": [0, 10, 20]
+                },
+                {
+                    "Type": "UniformScale",
+                    "Scale": 10
+                },
+                {
+                    "Type": "ZRotate",
+                    "Degree": 20
+                },
+                {
+                    "Type": "XRotate",
+                    "Degree": 10
+                }
+            ],
+            "Object": {
+                "Type": "Mesh",
+                "MaterialIndex": 4,
+                "File": "mesh/icosahedron.obj"
+            }
         }
     ]
 }
