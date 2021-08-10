@@ -1,12 +1,12 @@
 use crate::{
     ray::Ray,
-    utils::{gen_vert, parse_vector}
+    utils::{gen_vert, parse_vector},
 };
 use core::f64;
 use json::JsonValue;
 use rand::{thread_rng, Rng};
 use std::sync::Arc;
-use vecmat::{traits::Dot, vector::Vector3};
+use vecmat::{traits::Dot, vector::Vector3, Vector};
 
 pub trait Material {
     fn bsdf(
@@ -22,9 +22,9 @@ pub trait Material {
 
 #[derive(Clone, Copy)]
 pub enum MaterialType {
-    DIFFUSE,
-    SPECULAR,
-    REFRACTION,
+    Diffuse,
+    Specular,
+    Refraction,
 }
 
 #[derive(Clone, Copy)]
@@ -37,7 +37,7 @@ impl DiffuseMaterial {
     pub fn new(color: Vector3<f64>) -> Self {
         Self {
             color,
-            material_type: MaterialType::DIFFUSE,
+            material_type: MaterialType::Diffuse,
         }
     }
 }
@@ -88,7 +88,7 @@ impl SpecularMaterial {
     pub fn new(color: Vector3<f64>) -> Self {
         Self {
             color,
-            material_type: MaterialType::SPECULAR,
+            material_type: MaterialType::Specular,
         }
     }
 }
@@ -139,7 +139,7 @@ impl RefractionMaterial {
         Self {
             color,
             refr_index: refr_index.unwrap_or(1.5),
-            material_type: MaterialType::REFRACTION,
+            material_type: MaterialType::Refraction,
         }
     }
 }
@@ -163,7 +163,7 @@ impl Material for RefractionMaterial {
                 flux = flux.map(|x| x / h);
             }
         }
-        let refl_d = *direction_in - 2. * norm.dot(*direction_in) * *norm;
+        let refl_d: Vector<f64, 3> = *direction_in - 2. * norm.dot(*direction_in) * *norm;
         let nl = if norm.dot(*direction_in) < 0. {
             *norm
         } else {

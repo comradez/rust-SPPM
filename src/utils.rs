@@ -46,23 +46,23 @@ pub fn gen_rotate(degree: f64, dim: usize) -> Matrix4x4<f64> {
 }
 
 pub trait IsF32OrF64: Sized {
-    fn get_min(self, other: Self) -> Self;
-    fn get_max(self, other: Self) -> Self;
+    fn get_min(&self, other: Self) -> Self;
+    fn get_max(&self, other: Self) -> Self;
 }
 
 impl IsF32OrF64 for f32 {
-    fn get_min(self, other: Self) -> Self {
+    fn get_min(&self, other: Self) -> Self {
         self.min(other)
     }
-    fn get_max(self, other: Self) -> Self {
+    fn get_max(&self, other: Self) -> Self {
         self.max(other)
     }
 }
 impl IsF32OrF64 for f64 {
-    fn get_min(self, other: Self) -> Self {
+    fn get_min(&self, other: Self) -> Self {
         self.min(other)
     }
-    fn get_max(self, other: Self) -> Self {
+    fn get_max(&self, other: Self) -> Self {
         self.max(other)
     }
 }

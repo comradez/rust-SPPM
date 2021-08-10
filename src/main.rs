@@ -7,31 +7,30 @@ mod mesh;
 mod object3d;
 mod photon;
 mod ray;
-mod sceneparser;
+mod scene_parser;
 mod utils;
-use core::f64;
-use std::{
-    env,
-    sync::{Arc, Barrier, Mutex},
-    thread, u32, usize,
-};
 use crate::{
     materials::MaterialType,
     object3d::{Group, Object3d},
     photon::{HitPoint, KDTree, Photon},
     ray::Ray,
-    sceneparser::build_sceneparser,
+    scene_parser::build_scene_parser,
     utils::trunc,
 };
+use core::f64;
 use image::{ImageBuffer, ImageError, ImageResult, Rgb};
+use std::{
+    env,
+    sync::{Arc, Barrier, Mutex},
+    thread, u32, usize,
+};
 use vecmat::vector::Vector2;
 
 const PHOTON_NUMBER: u32 = 1000000;
 const ROUND_NUMBER: u32 = 5;
 const SAMPLE_NUMBER: u32 = 8;
 const PARALLEL_NUMBER: usize = 8;
-const _PHOTONS_PER_ROUND: u32 = PHOTON_NUMBER / PARALLEL_NUMBER as u32;
-const TMIN: f64 = 0.015;
+const T_MIN: f64 = 0.015;
 const NUMBER: f64 = (PHOTON_NUMBER * ROUND_NUMBER) as f64;
 
 fn render(
@@ -62,13 +61,13 @@ fn photon_trace(group: &Arc<Group>, mut ray: Ray, photon_map: &mut Vec<Photon>) 
         if depth > 100 {
             break;
         }
-        let hit = group.intersect(&ray, TMIN);
+        let hit = group.intersect(&ray, T_MIN);
         if let Some(hit) = hit {
             let material = hit.get_material();
             let position = ray.point_at_param(hit.get_t());
             let direction = ray.get_direction();
             depth += 1;
-            if let MaterialType::DIFFUSE = material.get_type() {
+            if let MaterialType::Diffuse = material.get_type() {
                 photon_map.push(Photon::new(
                     position,
                     *direction,
@@ -90,27 +89,27 @@ fn ray_trace(
     mut ray: Ray,
     kd_tree: &Arc<KDTree>,
     radius: f64,
-    buffer_pixel: &mut HitPoint
+    buffer_pixel: &mut HitPoint,
 ) {
     let mut depth = 0;
     loop {
         if depth > 100 {
             break;
         }
-        let hit = group.intersect(&ray, TMIN);
+        let hit = group.intersect(&ray, T_MIN);
         if let Some(hit) = hit {
             let material = hit.get_material();
             let color = material.get_color();
             let position = ray.point_at_param(hit.get_t());
             depth += 1;
             match material.get_type() {
-                MaterialType::DIFFUSE => {
+                MaterialType::Diffuse => {
                     buffer_pixel.radius = radius;
                     buffer_pixel.pos = Some(position);
                     kd_tree.search(buffer_pixel, color, hit.get_normal(), ray.get_flux());
                     break;
                 }
-                MaterialType::SPECULAR | MaterialType::REFRACTION => {
+                MaterialType::Specular | MaterialType::Refraction => {
                     if !material.bsdf(&mut ray, hit.get_normal(), &position, depth >= 20) {
                         break;
                     }
@@ -127,7 +126,7 @@ fn main() -> Result<(), ImageError> {
     let mut args = env::args().skip(1);
     let scene_file = args.next().expect("No scene file specified.");
     let output_file = args.next().expect("No output file specified.");
-    let parser = build_sceneparser(scene_file);
+    let parser = build_scene_parser(scene_file);
     let camera = parser.camera;
     let lights = parser.lights;
     let group = parser.group;
@@ -153,7 +152,7 @@ fn main() -> Result<(), ImageError> {
         println!("Round {} photon pass complete", &round);
         let kd_tree = KDTree::new(photon_map);
         let arc_kd_tree = Arc::new(kd_tree);
-        println!("Round {} kdtree build complete", &round);
+        println!("Round {} kd_tree build complete", &round);
         for (i, picture) in pictures.iter().enumerate() {
             let group = group.clone();
             let camera = camera.clone();
@@ -163,10 +162,6 @@ fn main() -> Result<(), ImageError> {
             thread::spawn(move || {
                 let column_begin = width * i / PARALLEL_NUMBER;
                 let column_end = width * (i + 1) / PARALLEL_NUMBER;
-                // println!(
-                //     "thread {} spawns with column range [{}, {})",
-                //     &i, &column_begin, &column_end
-                // );
                 let mut buffer = vec![vec![HitPoint::new(); height]; column_end - column_begin];
                 let mut picture = picture.lock().unwrap();
                 for (x, global_x) in (column_begin..column_end).enumerate() {
@@ -184,7 +179,7 @@ fn main() -> Result<(), ImageError> {
                                 ray,
                                 &arc_kd_tree,
                                 picture_pixel.radius,
-                                buffer_pixel
+                                buffer_pixel,
                             );
                         }
                         if round == 0 {
@@ -200,10 +195,6 @@ fn main() -> Result<(), ImageError> {
                     }
                 }
                 drop(picture);
-                // println!(
-                //     "thread {} ends with column range [{}, {})",
-                //     &i, &column_begin, &column_end
-                // );
                 barrier.wait();
             });
         }

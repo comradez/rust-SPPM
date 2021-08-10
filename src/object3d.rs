@@ -1,13 +1,20 @@
-use crate::{hit::Hit, materials::Material, mesh::build_mesh, ray::Ray, utils::{gen_rotate, gen_translation}, utils::{parse_vector, prior_hit}};
+use crate::{
+    hit::Hit,
+    materials::Material,
+    mesh::build_mesh,
+    ray::Ray,
+    utils::{gen_rotate, gen_translation},
+    utils::{parse_vector, prior_hit},
+};
 use core::f64;
 use json::JsonValue;
 use std::sync::Arc;
 use vecmat::{
     matrix::{Matrix3x3, Matrix4x4},
-    Matrix,
     prelude::One,
     traits::Dot,
-    vector::{Vector3, Vector4}
+    vector::{Vector3, Vector4},
+    Matrix,
 };
 pub trait Object3d {
     fn intersect(&self, ray: &Ray, tmin: f64) -> Option<Hit>;
@@ -192,10 +199,7 @@ pub struct Transform {
 impl Transform {
     pub fn new(object: Arc<dyn Object3d + Send + Sync>, transform: Matrix4x4<f64>) -> Self {
         let transform = transform.inv();
-        Self {
-            object,
-            transform
-        }
+        Self { object, transform }
     }
 }
 
@@ -216,12 +220,9 @@ impl Object3d for Transform {
         let tr_ray = Ray::new(tr_source, tr_direction, Some(*ray.get_flux()));
         let ret = self.object.intersect(&tr_ray, tmin);
         ret.map(|h| -> Hit {
-            let normal = transform_direction(&self.transform.transpose(), h.get_normal()).normalize();
-            Hit::new(
-                h.get_t(),
-                h.get_material().clone(),
-                normal
-            )
+            let normal =
+                transform_direction(&self.transform.transpose(), h.get_normal()).normalize();
+            Hit::new(h.get_t(), h.get_material().clone(), normal)
         })
     }
 }

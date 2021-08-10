@@ -1,6 +1,6 @@
 use crate::{
     ray::Ray,
-    utils::{gen_vert, parse_vector}
+    utils::{gen_vert, parse_vector},
 };
 use core::f64;
 use json::JsonValue;
@@ -138,7 +138,7 @@ pub fn build_light(light_attr: &JsonValue) -> Arc<dyn Light + Send + Sync> {
     let pos = parse_vector(&light_attr["Position"]);
     let flux = parse_vector(&light_attr["Flux"]);
     match light_type {
-        "SphereLiht" => Arc::new(SphereLight::new(Some(scale), pos, flux)),
+        "SphereLight" => Arc::new(SphereLight::new(Some(scale), pos, flux)),
         "ConeLight" => {
             let normal = parse_vector(&light_attr["Normal"]);
             let angle = light_attr["Angle"].as_f64().unwrap();

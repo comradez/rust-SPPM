@@ -1,4 +1,3 @@
-use adqselect::nth_element;
 use crate::{
     hit::Hit,
     materials::Material,
@@ -6,13 +5,10 @@ use crate::{
     ray::Ray,
     utils::{elementwise_division, get_max, get_min, prior_hit},
 };
+use adqselect::nth_element;
 use json::JsonValue;
 use lazy_static::lazy_static;
-use std::{
-    cmp::Ordering,
-    sync::Arc,
-    usize
-};
+use std::{cmp::Ordering, sync::Arc, usize};
 use tobj::{self, LoadOptions};
 use vecmat::vector::Vector3;
 struct Node {
@@ -117,7 +113,7 @@ impl Mesh {
         let mut v: Vec<Vector3<f64>> = Vec::new();
         let mut t: Vec<TriangleIndex> = Vec::new();
         let vn: Option<Vec<Vector3<f64>>>;
-        assert!(mesh.positions.len() % 3 == 0);
+        assert_eq!(mesh.positions.len() % 3, 0);
         for index in 0..mesh.positions.len() / 3 {
             v.push(Vector3::<f64>::from([
                 mesh.positions[3 * index] as f64,
@@ -125,7 +121,7 @@ impl Mesh {
                 mesh.positions[3 * index + 2] as f64,
             ]));
         }
-        assert!(mesh.indices.len() % 3 == 0);
+        assert_eq!(mesh.indices.len() % 3, 0);
         for index in 0..mesh.indices.len() / 3 {
             t.push(TriangleIndex::new(
                 [
@@ -138,7 +134,7 @@ impl Mesh {
         }
         if !mesh.normals.is_empty() {
             let mut real_vn: Vec<Vector3<f64>> = Vec::new();
-            assert!(mesh.normals.len() % 3 == 0);
+            assert_eq!(mesh.normals.len() % 3, 0);
             for index in 0..mesh.normals.len() / 3 {
                 real_vn.push(Vector3::<f64>::from([
                     mesh.normals[3 * index] as f64,

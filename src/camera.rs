@@ -2,13 +2,7 @@ use core::f64;
 use json::JsonValue;
 use rand::{thread_rng, Rng};
 use std::sync::Arc;
-use vecmat::{
-    matrix::Matrix3x3,
-    traits::Dot,
-    vector::Vector3,
-    Matrix,
-    Vector
-};
+use vecmat::{matrix::Matrix3x3, traits::Dot, vector::Vector3, Matrix, Vector};
 
 use crate::object3d::{Object3d, Plane};
 use crate::utils::parse_vector;
@@ -17,7 +11,7 @@ use crate::{materials::DiffuseMaterial, ray::Ray};
 pub struct PerspectiveCamera {
     center: Vector3<f64>,
     direction: Vector3<f64>,
-    horizental: Vector3<f64>,
+    horizontal: Vector3<f64>,
     up: Vector3<f64>,
     width: u32,
     height: u32,
@@ -34,14 +28,14 @@ impl PerspectiveCamera {
         height: u32,
     ) -> Self {
         let direction = direction.normalize();
-        let horizental: Vector3<f64> = direction.cross(up);
-        let horizental = horizental.normalize();
-        let up: Vector3<f64> = horizental.cross(direction);
+        let horizontal: Vector3<f64> = direction.cross(up);
+        let horizontal = horizontal.normalize();
+        let up: Vector3<f64> = horizontal.cross(direction);
         let angle = angle * std::f64::consts::PI / 180.0;
         Self {
             center,
             direction,
-            horizental,
+            horizontal,
             up,
             width,
             height,
@@ -53,7 +47,7 @@ impl PerspectiveCamera {
 pub struct DoFCamera {
     center: Vector3<f64>,
     direction: Vector3<f64>,
-    horizental: Vector3<f64>,
+    horizontal: Vector3<f64>,
     up: Vector3<f64>,
     width: u32,
     height: u32,
@@ -74,15 +68,15 @@ impl DoFCamera {
         aperture: f64,
     ) -> Self {
         let direction = direction.normalize();
-        let horizental: Vector3<f64> = direction.cross(up);
-        let horizental = horizental.normalize();
-        let up: Vector3<f64> = horizental.cross(direction);
+        let horizontal: Vector3<f64> = direction.cross(up);
+        let horizontal = horizontal.normalize();
+        let up: Vector3<f64> = horizontal.cross(direction);
         let angle = angle * std::f64::consts::PI / 180.0;
         let focus_dist = focus.dot(direction);
         Self {
             center,
             direction,
-            horizental,
+            horizontal,
             up,
             width,
             height,
@@ -107,7 +101,7 @@ impl Camera for PerspectiveCamera {
             self.dist,
         ]);
         let rot =
-            Matrix::<f64, 3, 3>::from_array_of_vectors([self.horizental, self.up, self.direction])
+            Matrix::<f64, 3, 3>::from_array_of_vectors([self.horizontal, self.up, self.direction])
                 .transpose();
         let dir = rot.dot(dir).normalize();
         Ray::new(self.center, dir, Some(Vector3::<f64>::from([1., 1., 1.])))
@@ -135,14 +129,14 @@ impl Camera for DoFCamera {
             self.dist,
         ]);
         let rot =
-            Matrix3x3::<f64>::from_array_of_vectors([self.horizental, self.up, self.direction])
+            Matrix3x3::<f64>::from_array_of_vectors([self.horizontal, self.up, self.direction])
                 .transpose();
         let dir = rot.dot(dir).normalize();
         let temp_ray = Ray::new(self.center, dir, None);
         let temp_material = Arc::new(DiffuseMaterial::new(Vector3::<f64>::from([1., 1., 1.])));
         let focus_plane = Plane::new(temp_material, self.direction, self.focus_dist);
         let hit = focus_plane.intersect(&temp_ray, 0.015).unwrap(); //这里保证有交
-        let delta: Vector3<f64> = self.aperture * (normal_x * self.horizental + normal_y * self.up);
+        let delta: Vector3<f64> = self.aperture * (normal_x * self.horizontal + normal_y * self.up);
         let real_dir: Vector3<f64> = temp_ray.point_at_param(hit.get_t()) - (self.center + delta);
         let real_dir = real_dir.normalize();
         Ray::new(
